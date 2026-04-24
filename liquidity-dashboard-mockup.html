@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Liquidity Pulse — Market Discovery Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface: #0b1326;
+      --surface-dim: #0b1326;
+      --surface-bright: #31394d;
+      --surface-container-lowest: #060e20;
+      --surface-container-low: #131b2e;
+      --surface-container: #171f33;
+      --surface-container-high: #222a3d;
+      --surface-container-highest: #2d3449;
+      --on-surface: #dae2fd;
+      --on-surface-variant: #c2c6d6;
+      --outline: #8c909f;
+      --outline-variant: #424754;
+      --primary: #adc6ff;
+      --primary-strong: #4d8eff;
+      --on-primary: #002e6a;
+      --secondary: #4edea3;
+      --secondary-strong: #00a572;
+      --tertiary: #ffb3ad;
+      --tertiary-strong: #ff5451;
+      --error: #ffb4ab;
+      --shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 18px;
+      --gutter: 16px;
+      --panel-padding: 20px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, sans-serif;
+      background: linear-gradient(180deg, #091121 0%, #060c18 100%);
+      color: var(--on-surface);
+      overflow: hidden;
+    }
+
+    .app-shell {
+      height: 100vh;
+      display: grid;
+      grid-template-columns: 256px 1fr;
+      grid-template-rows: 72px 1fr;
+      grid-template-areas:
+        "sidebar topbar"
+        "sidebar main";
+    }
+
+    .topbar {
+      grid-area: topbar;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      background: rgba(9, 16, 31, 0.84);
+      border-bottom: 1px solid rgba(140, 144, 159, 0.18);
+      backdrop-filter: blur(16px);
+      position: relative;
+      z-index: 10;
+    }
+
+    .brand-row, .topbar-actions, .nav-tabs, .status-group {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .brand {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--on-surface);
+    }
+
+    .nav-tab {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--on-surface-variant);
+      padding: 8px 0;
+      position: relative;
+    }
+
+    .nav-tab.active {
+      color: var(--primary-strong);
+    }
+
+    .nav-tab.active::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -19px;
+      height: 2px;
+      border-radius: 999px;
+      background: var(--primary-strong);
+      box-shadow: 0 0 12px rgba(77, 142, 255, 0.5);
+    }
+
+    .sidebar {
+      grid-area: sidebar;
+      background: linear-gradient(180deg, #0b1326 0%, #0a1020 100%);
+      border-right: 1px solid rgba(140, 144, 159, 0.14);
+      padding: 20px 16px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      min-height: 0;
+    }
+
+    .sidebar-header {
+      padding: 12px 12px 18px;
+      border-bottom: 1px solid rgba(140, 144, 159, 0.12);
+    }
+
+    .sidebar-kicker {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--primary-strong);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      margin-bottom: 6px;
+    }
+
+    .sidebar-subtitle {
+      font-size: 12px;
+      color: var(--on-surface-variant);
+    }
+
+    .side-nav {
+      display: grid;
+      gap: 6px;
+    }
+
+    .side-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 14px;
+      border-radius: var(--radius-lg);
+      color: var(--on-surface-variant);
+      background: transparent;
+      border: 1px solid transparent;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .side-link .left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .side-link.active {
+      background: rgba(77, 142, 255, 0.10);
+      color: var(--primary-strong);
+      border-color: rgba(77, 142, 255, 0.28);
+      box-shadow: inset 2px 0 0 var(--primary-strong);
+    }
+
+    .side-link:hover:not(.active) {
+      background: rgba(255,255,255,0.03);
+      color: var(--on-surface);
+      border-color: rgba(140, 144, 159, 0.12);
+    }
+
+    .side-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.04);
+      color: inherit;
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      display: grid;
+      gap: 12px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(140, 144, 159, 0.12);
+    }
+
+    .mini-note {
+      padding: 12px;
+      border-radius: var(--radius-lg);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(140, 144, 159, 0.12);
+      color: var(--on-surface-variant);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .button-primary {
+      border: none;
+      border-radius: 10px;
+      padding: 11px 14px;
+      background: linear-gradient(180deg, #5f9cff 0%, #4d8eff 100%);
+      color: #051529;
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 0.02em;
+      box-shadow: 0 10px 24px rgba(77, 142, 255, 0.25);
+    }
+
+    .main {
+      grid-area: main;
+      min-width: 0;
+      min-height: 0;
+      overflow: auto;
+      background:
+        radial-gradient(circle at 35% 10%, rgba(77, 142, 255, 0.08), transparent 30%),
+        radial-gradient(circle at 80% 0%, rgba(78, 222, 163, 0.06), transparent 24%),
+        var(--surface-container-lowest);
+    }
+
+    .canvas {
+      max-width: 1580px;
+      margin: 0 auto;
+      padding: 24px 24px 32px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      align-items: flex-end;
+    }
+
+    .page-title {
+      font-size: 46px;
+      line-height: 1.05;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      margin: 0 0 10px;
+    }
+
+    .page-subtitle {
+      max-width: 840px;
+      margin: 0;
+      color: var(--on-surface-variant);
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    .hero-meta {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .regime-badge, .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    .regime-badge {
+      background: rgba(78, 222, 163, 0.10);
+      border: 1px solid rgba(78, 222, 163, 0.22);
+      color: var(--secondary);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: currentColor;
+      box-shadow: 0 0 10px currentColor;
+    }
+
+    .metrics-row,
+    .grid-12 {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      gap: 16px;
+    }
+
+    .metric-card,
+    .panel,
+    .idea-row,
+    .watch-item,
+    .signal-item,
+    .feed-item,
+    .theme-item,
+    .trend-item {
+      background: linear-gradient(180deg, rgba(34,42,61,0.92) 0%, rgba(23,31,51,0.96) 100%);
+      border: 1px solid rgba(140, 144, 159, 0.14);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+    }
+
+    .metric-card {
+      padding: 16px 18px;
+      min-height: 98px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .metric-label,
+    .panel-kicker,
+    .micro-label,
+    .table-head {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--on-surface-variant);
+    }
+
+    .metric-value {
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-foot {
+      color: var(--on-surface-variant);
+      font-size: 12px;
+    }
+
+    .green { color: var(--secondary); }
+    .red { color: var(--tertiary); }
+    .blue { color: var(--primary); }
+
+    .panel {
+      padding: var(--panel-padding);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .panel-title {
+      margin: 0 0 6px;
+      font-size: 23px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .panel-subtitle {
+      margin: 0;
+      color: var(--on-surface-variant);
+      font-size: 13px;
+      line-height: 1.5;
+      max-width: 700px;
+    }
+
+    .hero-panel {
+      grid-column: span 8;
+      min-height: 470px;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(77, 142, 255, 0.09), transparent 30%),
+        radial-gradient(circle at 20% 10%, rgba(78, 222, 163, 0.05), transparent 24%),
+        linear-gradient(180deg, rgba(23,31,51,0.98), rgba(19,27,46,0.98));
+    }
+
+    .hero-surface {
+      position: relative;
+      min-height: 380px;
+      border-radius: 16px;
+      background: linear-gradient(180deg, rgba(9,15,28,0.52), rgba(10,14,25,0.18));
+      border: 1px solid rgba(140, 144, 159, 0.08);
+      overflow: hidden;
+    }
+
+    .hero-map {
+      position: relative;
+      height: 100%;
+      min-height: 380px;
+      padding: 24px 18px 18px;
+    }
+
+    .node-row,
+    .benefit-row {
+      position: absolute;
+      left: 24px;
+      right: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 2;
+    }
+
+    .node-row { top: 18px; }
+    .benefit-row { bottom: 18px; gap: 12px; }
+
+    .flow-node {
+      width: 84px;
+      text-align: center;
+      display: grid;
+      gap: 10px;
+      justify-items: center;
+    }
+
+    .flow-node-circle {
+      width: 58px;
+      height: 58px;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: rgba(45, 52, 73, 0.72);
+      border: 1px solid rgba(173, 198, 255, 0.24);
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: 0 0 24px rgba(77, 142, 255, 0.14);
+    }
+
+    .flow-node.green-node .flow-node-circle {
+      color: var(--secondary);
+      border-color: rgba(78, 222, 163, 0.24);
+      box-shadow: 0 0 24px rgba(78, 222, 163, 0.14);
+    }
+
+    .flow-node.red-node .flow-node-circle {
+      color: var(--tertiary);
+      border-color: rgba(255, 84, 81, 0.24);
+      box-shadow: 0 0 24px rgba(255, 84, 81, 0.14);
+    }
+
+    .flow-node-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.10em;
+      color: var(--on-surface-variant);
+      line-height: 1.4;
+    }
+
+    .connector-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      opacity: 0.82;
+    }
+
+    .connector-layer path {
+      fill: none;
+      stroke-width: 2.5;
+      stroke-dasharray: 10 10;
+      animation: flow 12s linear infinite;
+    }
+
+    .connector-layer .fast { animation-duration: 7s; }
+    .connector-layer .slow { animation-duration: 13s; }
+
+    .connector-layer text {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      fill: rgba(194, 198, 214, 0.72);
+    }
+
+    @keyframes flow {
+      from { stroke-dashoffset: 220; }
+      to { stroke-dashoffset: 0; }
+    }
+
+    .center-catalyst {
+      position: absolute;
+      left: 50%;
+      top: 51%;
+      transform: translate(-50%, -50%);
+      width: 320px;
+      padding: 16px 18px;
+      text-align: center;
+      border-radius: 18px;
+      background: rgba(9, 16, 31, 0.88);
+      border: 1px solid rgba(77, 142, 255, 0.26);
+      box-shadow: 0 24px 50px rgba(0,0,0,0.35), 0 0 30px rgba(77, 142, 255, 0.08);
+      backdrop-filter: blur(14px);
+      z-index: 3;
+    }
+
+    .center-catalyst .title {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--primary-strong);
+      margin-bottom: 6px;
+    }
+
+    .center-catalyst .headline {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 8px;
+    }
+
+    .center-catalyst .body {
+      font-size: 13px;
+      color: var(--on-surface-variant);
+      line-height: 1.55;
+      margin-bottom: 10px;
+    }
+
+    .benefit-card {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 14px 14px 12px;
+      border-radius: 14px;
+      background: rgba(19, 27, 46, 0.84);
+      border: 1px solid rgba(140,144,159,0.12);
+      display: grid;
+      gap: 8px;
+      z-index: 2;
+      backdrop-filter: blur(6px);
+    }
+
+    .benefit-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .benefit-name {
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .progress {
+      width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.06);
+    }
+
+    .progress > span {
+      display: block;
+      height: 100%;
+      border-radius: inherit;
+      background: currentColor;
+    }
+
+    .stack-panel { grid-column: span 4; display: grid; gap: 16px; }
+
+    .theme-item,
+    .feed-item,
+    .watch-item,
+    .signal-item,
+    .trend-item,
+    .idea-row {
+      padding: 14px 16px;
+    }
+
+    .theme-list,
+    .feed-list,
+    .signal-list,
+    .idea-list,
+    .watch-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .theme-item {
+      display: grid;
+      grid-template-columns: 1fr auto auto;
+      gap: 16px;
+      align-items: center;
+      border-radius: 14px;
+      background: rgba(11,19,38,0.65);
+      border: 1px solid rgba(140, 144, 159, 0.10);
+    }
+
+    .theme-name { font-size: 14px; font-weight: 700; }
+    .theme-meta { color: var(--on-surface-variant); font-size: 12px; margin-top: 3px; }
+    .theme-score { font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+    .sparkline {
+      width: 84px;
+      height: 24px;
+    }
+
+    .sparkline path {
+      fill: none;
+      stroke-width: 2.25;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .heatmap-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .heat {
+      aspect-ratio: 1;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      border: 1px solid rgba(255,255,255,0.06);
+    }
+
+    .heat.pos-1 { background: rgba(78,222,163,0.16); color: #a6ffd6; }
+    .heat.pos-2 { background: rgba(78,222,163,0.28); color: #d9fff0; }
+    .heat.pos-3 { background: rgba(0,165,114,0.48); color: #f0fff9; }
+    .heat.neg-1 { background: rgba(255,84,81,0.14); color: #ffd1cd; }
+    .heat.neg-2 { background: rgba(255,84,81,0.28); color: #ffe4e1; }
+    .heat.neg-3 { background: rgba(255,84,81,0.44); color: #fff4f4; }
+    .heat.neutral { background: rgba(173,198,255,0.11); color: #dce7ff; }
+
+    .split-panel { grid-column: span 6; }
+
+    .split-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .split-column-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .trend-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      background: rgba(11,19,38,0.60);
+      border-left: 2px solid currentColor;
+      border-radius: 12px;
+    }
+
+    .trend-name { font-size: 14px; font-weight: 700; }
+    .trend-note { font-size: 12px; color: var(--on-surface-variant); margin-top: 4px; }
+    .trend-score { font-size: 12px; font-weight: 800; }
+
+    .feed-item {
+      display: grid;
+      grid-template-columns: 44px 1fr;
+      gap: 14px;
+      align-items: start;
+      background: rgba(11,19,38,0.62);
+      border-radius: 14px;
+      border: 1px solid rgba(140, 144, 159, 0.10);
+    }
+
+    .feed-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+      font-weight: 800;
+      background: rgba(77, 142, 255, 0.14);
+      color: var(--primary);
+      border: 1px solid rgba(77, 142, 255, 0.16);
+    }
+
+    .feed-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+    .feed-body { font-size: 12px; line-height: 1.55; color: var(--on-surface-variant); }
+    .feed-meta { margin-top: 8px; font-size: 11px; color: var(--outline); letter-spacing: 0.08em; text-transform: uppercase; }
+
+    .recommendations-panel { grid-column: 1 / -1; }
+
+    .recommendations-grid {
+      display: grid;
+      grid-template-columns: 1.7fr 1fr;
+      gap: 16px;
+    }
+
+    .idea-header,
+    .idea-row {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr 1.2fr 0.8fr 0.9fr 0.8fr;
+      gap: 14px;
+      align-items: center;
+    }
+
+    .idea-header {
+      padding: 0 4px 10px;
+      border-bottom: 1px solid rgba(140, 144, 159, 0.12);
+      margin-bottom: 12px;
+    }
+
+    .idea-row {
+      border-radius: 14px;
+      background: rgba(11,19,38,0.58);
+      border: 1px solid rgba(140, 144, 159, 0.10);
+    }
+
+    .ticker {
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .subtext {
+      color: var(--on-surface-variant);
+      font-size: 12px;
+      margin-top: 4px;
+      line-height: 1.45;
+    }
+
+    .entry-pill,
+    .conviction-pill,
+    .small-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      width: fit-content;
+      border: 1px solid transparent;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .entry-scale { background: rgba(78,222,163,0.10); color: var(--secondary); border-color: rgba(78,222,163,0.18); }
+    .entry-wait { background: rgba(173,198,255,0.10); color: var(--primary); border-color: rgba(173,198,255,0.18); }
+    .entry-avoid { background: rgba(255,84,81,0.10); color: var(--tertiary); border-color: rgba(255,84,81,0.18); }
+
+    .conviction-high { background: rgba(78,222,163,0.10); color: var(--secondary); border-color: rgba(78,222,163,0.18); }
+    .conviction-med { background: rgba(173,198,255,0.10); color: var(--primary); border-color: rgba(173,198,255,0.18); }
+
+    .watch-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+      background: rgba(11,19,38,0.62);
+      border-radius: 14px;
+      border: 1px solid rgba(140, 144, 159, 0.10);
+    }
+
+    .watch-left { min-width: 0; }
+    .watch-right { text-align: right; }
+    .watch-ticker { font-size: 14px; font-weight: 800; }
+    .watch-note { font-size: 12px; color: var(--on-surface-variant); margin-top: 4px; }
+    .watch-price { font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+
+    .status-card {
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(140, 144, 159, 0.14);
+      color: var(--on-surface-variant);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .status-card strong { color: var(--on-surface); }
+
+    @media (max-width: 1320px) {
+      .recommendations-grid { grid-template-columns: 1fr; }
+      .hero-panel { grid-column: span 12; }
+      .stack-panel, .split-panel { grid-column: span 12; }
+    }
+
+    @media (max-width: 1080px) {
+      .app-shell {
+        grid-template-columns: 1fr;
+        grid-template-rows: 72px auto 1fr;
+        grid-template-areas:
+          "topbar"
+          "sidebar"
+          "main";
+      }
+      .sidebar {
+        min-height: auto;
+      }
+      .hero-row { flex-direction: column; align-items: flex-start; }
+      .hero-meta { justify-content: flex-start; }
+      .benefit-row, .node-row { position: static; flex-wrap: wrap; }
+      .center-catalyst { position: static; transform: none; width: auto; margin: 26px auto; }
+      .hero-map { display: grid; gap: 20px; }
+      .connector-layer { display: none; }
+      .idea-header, .idea-row { grid-template-columns: 1fr; }
+      .split-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-kicker">Terminal v1.0</div>
+        <div class="sidebar-subtitle">Institutional market intelligence</div>
+      </div>
+
+      <nav class="side-nav">
+        <div class="side-link active">
+          <div class="left"><span class="side-icon">DS</span><span>Discovery</span></div>
+          <span>›</span>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">LF</span><span>Liquidity</span></div>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">IM</span><span>Impacts</span></div>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">HT</span><span>Hidden Trends</span></div>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">ID</span><span>Ideas</span></div>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">ST</span><span>Settings</span></div>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="mini-note">
+          Design direction: dark command center, compact information density, restrained semantic color system, and high-trust institutional tone.
+        </div>
+        <button class="button-primary">Refresh signals</button>
+      </div>
+    </aside>
+
+    <header class="topbar">
+      <div class="brand-row">
+        <div class="brand">LIQUIDITY PULSE</div>
+        <div class="nav-tabs">
+          <div class="nav-tab active">Discovery</div>
+          <div class="nav-tab">Flows</div>
+          <div class="nav-tab">Transmission</div>
+          <div class="nav-tab">Recommendations</div>
+        </div>
+      </div>
+
+      <div class="topbar-actions">
+        <div class="status-group">
+          <div class="regime-badge"><span class="dot"></span>Liquidity Expanding</div>
+          <div class="chip" style="background:rgba(173,198,255,0.10); border:1px solid rgba(173,198,255,0.18); color:var(--primary);">Updated 19:46 CEST</div>
+        </div>
+        <div class="chip" style="background:rgba(255,255,255,0.04); border:1px solid rgba(140,144,159,0.18); color:var(--on-surface-variant);">Alerts 3</div>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="canvas">
+        <section class="hero-row">
+          <div>
+            <h1 class="page-title">Market Discovery</h1>
+            <p class="page-subtitle">
+              A mockup for a unified intelligence dashboard: news-to-impact mapping, liquidity flows, cross-asset transmission,
+              hidden trend detection, and stock ideas — all presented with the Stitch-inspired command-center design language.
+            </p>
+          </div>
+          <div class="hero-meta">
+            <div class="chip" style="background:rgba(78,222,163,0.10); border:1px solid rgba(78,222,163,0.18); color:var(--secondary);">Risk-On Rotation</div>
+            <div class="chip" style="background:rgba(173,198,255,0.10); border:1px solid rgba(173,198,255,0.18); color:var(--primary);">24h View</div>
+          </div>
+        </section>
+
+        <section class="metrics-row">
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">Net Liquidity</div>
+            <div class="metric-value green">+$18.4B</div>
+            <div class="metric-foot">TGA + ETF + stablecoin composite</div>
+          </div>
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">Flow Momentum</div>
+            <div class="metric-value blue">72 / 100</div>
+            <div class="metric-foot">Breadth and persistence improving</div>
+          </div>
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">Stress Index</div>
+            <div class="metric-value red">34</div>
+            <div class="metric-foot">Contained, but oil + rates still elevated</div>
+          </div>
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">Hidden Trend Score</div>
+            <div class="metric-value green">+11</div>
+            <div class="metric-foot">Power & grid narrative broadening</div>
+          </div>
+        </section>
+
+        <section class="grid-12">
+          <article class="panel hero-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-kicker">Centerpiece explainer</div>
+                <h2 class="panel-title">Market Transmission Map</h2>
+                <p class="panel-subtitle">Macro anchors, dominant catalyst, and the first- and second-order areas where capital appears to be rotating.</p>
+              </div>
+              <div class="chip" style="background:rgba(255,255,255,0.04); border:1px solid rgba(140,144,159,0.16); color:var(--on-surface-variant);">Live model</div>
+            </div>
+
+            <div class="hero-surface">
+              <div class="hero-map">
+                <div class="node-row">
+                  <div class="flow-node red-node">
+                    <div class="flow-node-circle">DXY</div>
+                    <div class="flow-node-label">Dollar pressure</div>
+                  </div>
+                  <div class="flow-node red-node">
+                    <div class="flow-node-circle">10Y</div>
+                    <div class="flow-node-label">Rate anchor</div>
+                  </div>
+                  <div class="flow-node red-node">
+                    <div class="flow-node-circle">OIL</div>
+                    <div class="flow-node-label">Inflation risk</div>
+                  </div>
+                  <div class="flow-node green-node">
+                    <div class="flow-node-circle">BTC</div>
+                    <div class="flow-node-label">Risk proxy</div>
+                  </div>
+                  <div class="flow-node">
+                    <div class="flow-node-circle">SPX</div>
+                    <div class="flow-node-label">Equity breadth</div>
+                  </div>
+                </div>
+
+                <svg class="connector-layer" viewBox="0 0 1000 420" preserveAspectRatio="none" aria-hidden="true">
+                  <path class="slow" d="M110 80 C 170 150, 250 175, 340 210" stroke="rgba(255,84,81,0.55)"></path>
+                  <path class="fast" d="M275 80 C 340 140, 420 165, 500 210" stroke="rgba(255,84,81,0.52)"></path>
+                  <path class="slow" d="M435 80 C 500 140, 565 160, 660 210" stroke="rgba(255,84,81,0.42)"></path>
+                  <path class="fast" d="M605 80 C 620 135, 600 175, 520 210" stroke="rgba(78,222,163,0.62)"></path>
+                  <path class="slow" d="M770 80 C 735 145, 680 180, 580 210" stroke="rgba(173,198,255,0.46)"></path>
+
+                  <path class="fast" d="M500 240 C 360 295, 260 320, 175 340" stroke="rgba(78,222,163,0.55)"></path>
+                  <path class="slow" d="M500 240 C 500 300, 500 315, 500 340" stroke="rgba(173,198,255,0.45)"></path>
+                  <path class="fast" d="M500 240 C 635 298, 735 320, 825 340" stroke="rgba(255,84,81,0.52)"></path>
+
+                  <text x="165" y="175">Funding pressure</text>
+                  <text x="425" y="152">Policy repricing</text>
+                  <text x="675" y="165">Risk-on beta</text>
+                  <text x="240" y="295">Power capex</text>
+                  <text x="520" y="300">Second-order flows</text>
+                  <text x="748" y="297">Crowding / valuation</text>
+                </svg>
+
+                <div class="center-catalyst">
+                  <div class="title">Dominant catalyst</div>
+                  <div class="headline">AI power demand + sticky rates</div>
+                  <div class="body">Hyperscaler capex keeps broadening into utilities, electrical equipment, cooling, and grid hardware while elevated yields limit the chase in already crowded duration names.</div>
+                  <div class="chip" style="margin:0 auto; background:rgba(78,222,163,0.10); border:1px solid rgba(78,222,163,0.18); color:var(--secondary);">Confidence 76%</div>
+                </div>
+
+                <div class="benefit-row">
+                  <div class="benefit-card green">
+                    <div class="benefit-head">
+                      <div class="benefit-name">Power & Grid Stack</div>
+                      <div class="small-badge" style="background:rgba(78,222,163,0.10); border:1px solid rgba(78,222,163,0.18); color:var(--secondary);">Lead</div>
+                    </div>
+                    <div class="progress"><span style="width: 83%"></span></div>
+                    <div class="micro-label">Strong second-order flow support</div>
+                  </div>
+
+                  <div class="benefit-card blue">
+                    <div class="benefit-head">
+                      <div class="benefit-name">Copper & Materials</div>
+                      <div class="small-badge" style="background:rgba(173,198,255,0.10); border:1px solid rgba(173,198,255,0.18); color:var(--primary);">Build</div>
+                    </div>
+                    <div class="progress"><span style="width: 59%"></span></div>
+                    <div class="micro-label">Supply bottleneck narrative strengthening</div>
+                  </div>
+
+                  <div class="benefit-card red">
+                    <div class="benefit-head">
+                      <div class="benefit-name">Expensive Duration Growth</div>
+                      <div class="small-badge" style="background:rgba(255,84,81,0.10); border:1px solid rgba(255,84,81,0.18); color:var(--tertiary);">Watch</div>
+                    </div>
+                    <div class="progress"><span style="width: 31%"></span></div>
+                    <div class="micro-label">Theme intact, timing less attractive</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <div class="stack-panel">
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-kicker">Ranked themes</div>
+                  <h2 class="panel-title">Flow Leaders</h2>
+                </div>
+                <div class="chip" style="background:rgba(255,255,255,0.04); border:1px solid rgba(140,144,159,0.16); color:var(--on-surface-variant);">4h</div>
+              </div>
+              <div class="theme-list">
+                <div class="theme-item">
+                  <div>
+                    <div class="theme-name">AI Power Stack</div>
+                    <div class="theme-meta">Utilities, electrical equipment, cooling</div>
+                  </div>
+                  <div class="theme-score green">+8.6%</div>
+                  <svg class="sparkline" viewBox="0 0 84 24"><path stroke="#4edea3" d="M2 18 L12 16 L22 18 L32 12 L42 13 L52 8 L62 10 L72 5 L82 7"></path></svg>
+                </div>
+                <div class="theme-item">
+                  <div>
+                    <div class="theme-name">Reindustrialization</div>
+                    <div class="theme-meta">Capex, reshoring, industrial automation</div>
+                  </div>
+                  <div class="theme-score green">+5.1%</div>
+                  <svg class="sparkline" viewBox="0 0 84 24"><path stroke="#4edea3" d="M2 19 L12 17 L22 15 L32 16 L42 12 L52 13 L62 9 L72 11 L82 8"></path></svg>
+                </div>
+                <div class="theme-item">
+                  <div>
+                    <div class="theme-name">Rate-Sensitive SaaS</div>
+                    <div class="theme-meta">Good stories, weaker timing</div>
+                  </div>
+                  <div class="theme-score red">-2.4%</div>
+                  <svg class="sparkline" viewBox="0 0 84 24"><path stroke="#ffb3ad" d="M2 7 L12 10 L22 9 L32 13 L42 12 L52 17 L62 16 L72 19 L82 18"></path></svg>
+                </div>
+                <div class="theme-item">
+                  <div>
+                    <div class="theme-name">Legacy Banks</div>
+                    <div class="theme-meta">Lagging rotation confirmation</div>
+                  </div>
+                  <div class="theme-score red">-3.0%</div>
+                  <svg class="sparkline" viewBox="0 0 84 24"><path stroke="#ffb3ad" d="M2 8 L12 9 L22 11 L32 12 L42 13 L52 15 L62 16 L72 18 L82 18"></path></svg>
+                </div>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-kicker">Breadth scan</div>
+                  <h2 class="panel-title">Liquidity Heatmap</h2>
+                </div>
+              </div>
+              <div class="heatmap-grid">
+                <div class="heat pos-3">Util</div>
+                <div class="heat pos-2">Inds</div>
+                <div class="heat pos-2">Tech</div>
+                <div class="heat neg-1">Fin</div>
+                <div class="heat pos-1">Mate</div>
+                <div class="heat pos-3">Ener</div>
+                <div class="heat neutral">REIT</div>
+                <div class="heat neg-2">Cons</div>
+                <div class="heat pos-1">Defn</div>
+                <div class="heat neg-3">Soft</div>
+                <div class="heat pos-2">Grid</div>
+                <div class="heat neg-1">Media</div>
+              </div>
+            </article>
+          </div>
+
+          <article class="panel split-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-kicker">Narrative monitor</div>
+                <h2 class="panel-title">Strengthening vs Weakening Trends</h2>
+                <p class="panel-subtitle">Not generic gainers and losers — only themes with some explanatory flow or catalyst backing.</p>
+              </div>
+              <div class="chip" style="background:rgba(255,255,255,0.04); border:1px solid rgba(140,144,159,0.16); color:var(--on-surface-variant);">Last 24h</div>
+            </div>
+            <div class="split-grid">
+              <div>
+                <div class="split-column-title green"><span class="dot"></span>Strengthening</div>
+                <div class="signal-list">
+                  <div class="trend-item green">
+                    <div>
+                      <div class="trend-name">Transformer shortages</div>
+                      <div class="trend-note">Repeated supply mentions across utilities and industrial channels</div>
+                    </div>
+                    <div class="trend-score">84</div>
+                  </div>
+                  <div class="trend-item green">
+                    <div>
+                      <div class="trend-name">Nuclear restart economics</div>
+                      <div class="trend-note">Power scarcity narrative broadening beyond headline AI names</div>
+                    </div>
+                    <div class="trend-score">76</div>
+                  </div>
+                  <div class="trend-item green">
+                    <div>
+                      <div class="trend-name">Grid interconnection bottlenecks</div>
+                      <div class="trend-note">Second-order capex beneficiaries beginning to confirm</div>
+                    </div>
+                    <div class="trend-score">69</div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="split-column-title red"><span class="dot"></span>Weakening</div>
+                <div class="signal-list">
+                  <div class="trend-item red">
+                    <div>
+                      <div class="trend-name">Meme-beta rotation</div>
+                      <div class="trend-note">Risk appetite narrow, less broad sponsorship</div>
+                    </div>
+                    <div class="trend-score">-58</div>
+                  </div>
+                  <div class="trend-item red">
+                    <div>
+                      <div class="trend-name">Unprofitable duration chase</div>
+                      <div class="trend-note">Rates remain too high for clean re-acceleration</div>
+                    </div>
+                    <div class="trend-score">-49</div>
+                  </div>
+                  <div class="trend-item red">
+                    <div>
+                      <div class="trend-name">Legacy bank breakout thesis</div>
+                      <div class="trend-note">Weak confirming flow despite macro commentary</div>
+                    </div>
+                    <div class="trend-score">-41</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel split-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-kicker">Curated catalyst layer</div>
+                <h2 class="panel-title">Impact Feed</h2>
+                <p class="panel-subtitle">A filtered event stream that explains where the dashboard believes second-order effects are likely to propagate.</p>
+              </div>
+            </div>
+            <div class="feed-list">
+              <div class="feed-item">
+                <div class="feed-icon">MC</div>
+                <div>
+                  <div class="feed-title">Treasury issuance mix points to tighter front-end liquidity</div>
+                  <div class="feed-body">Bill-heavy financing could compete with risk assets for short-duration cash while still leaving long-end rates elevated enough to restrain expensive growth leadership.</div>
+                  <div class="feed-meta">12 minutes ago • Macro</div>
+                </div>
+              </div>
+              <div class="feed-item">
+                <div class="feed-icon" style="background:rgba(78,222,163,0.14); color:var(--secondary); border-color:rgba(78,222,163,0.16);">AI</div>
+                <div>
+                  <div class="feed-title">Hyperscaler capex commentary broadens from chips to power procurement</div>
+                  <div class="feed-body">The market is beginning to price power availability, cooling, switchgear, and utility relationships as part of the AI infrastructure stack rather than just semis and networking.</div>
+                  <div class="feed-meta">48 minutes ago • Tech / Utilities</div>
+                </div>
+              </div>
+              <div class="feed-item">
+                <div class="feed-icon" style="background:rgba(255,84,81,0.14); color:var(--tertiary); border-color:rgba(255,84,81,0.16);">EN</div>
+                <div>
+                  <div class="feed-title">Oil strength lifts inflation anxiety but not broad cyclical confirmation</div>
+                  <div class="feed-body">Energy is helping real-assets leadership, but until breadth improves the dashboard treats it more as pressure on rate-sensitive growth than as a full reflation signal.</div>
+                  <div class="feed-meta">1 hour ago • Energy</div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel recommendations-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-kicker">Action layer</div>
+                <h2 class="panel-title">Recommendation Board</h2>
+                <p class="panel-subtitle">Ideas scored on theme fit, regime fit, crowding, and entry quality — aligned to the same visual language as the rest of the dashboard.</p>
+              </div>
+              <div class="chip" style="background:rgba(173,198,255,0.10); border:1px solid rgba(173,198,255,0.18); color:var(--primary);">MVP view</div>
+            </div>
+
+            <div class="recommendations-grid">
+              <div>
+                <div class="idea-header">
+                  <div class="table-head">Name</div>
+                  <div class="table-head">Theme</div>
+                  <div class="table-head">Why now</div>
+                  <div class="table-head">Entry</div>
+                  <div class="table-head">Risk</div>
+                  <div class="table-head">Conviction</div>
+                </div>
+
+                <div class="idea-list">
+                  <div class="idea-row">
+                    <div>
+                      <div class="ticker">CEG — Constellation Energy</div>
+                      <div class="subtext">Cleaner exposure to power scarcity and AI electricity demand.</div>
+                    </div>
+                    <div class="subtext">Generation / nuclear / power contracts</div>
+                    <div class="subtext">Still tied to the core power narrative but less stretched than some equipment peers.</div>
+                    <div><span class="entry-pill entry-scale">Scale in</span></div>
+                    <div class="subtext">Regulatory + execution</div>
+                    <div><span class="conviction-pill conviction-high">High</span></div>
+                  </div>
+
+                  <div class="idea-row">
+                    <div>
+                      <div class="ticker">ETN — Eaton</div>
+                      <div class="subtext">High-quality power management name with strong structural demand.</div>
+                    </div>
+                    <div class="subtext">Electrical equipment / data center spillover</div>
+                    <div class="subtext">Excellent theme fit, but timing discipline matters near highs.</div>
+                    <div><span class="entry-pill entry-wait">Wait</span></div>
+                    <div class="subtext">Crowding / valuation</div>
+                    <div><span class="conviction-pill conviction-med">Medium</span></div>
+                  </div>
+
+                  <div class="idea-row">
+                    <div>
+                      <div class="ticker">HUBB — Hubbell</div>
+                      <div class="subtext">Grid hardware beneficiary with more picks-and-shovels character.</div>
+                    </div>
+                    <div class="subtext">Transmission / distribution / utility capex</div>
+                    <div class="subtext">Second-order winner if the market keeps broadening beyond headline AI.</div>
+                    <div><span class="entry-pill entry-wait">Wait</span></div>
+                    <div class="subtext">Already extended</div>
+                    <div><span class="conviction-pill conviction-med">Medium</span></div>
+                  </div>
+
+                  <div class="idea-row">
+                    <div>
+                      <div class="ticker">VRT — Vertiv</div>
+                      <div class="subtext">Cooling and power infrastructure remain right; timing is the issue.</div>
+                    </div>
+                    <div class="subtext">Data center thermal / electrical infrastructure</div>
+                    <div class="subtext">Good business, less attractive immediate entry after large run.</div>
+                    <div><span class="entry-pill entry-avoid">Avoid chase</span></div>
+                    <div class="subtext">Crowded breakout risk</div>
+                    <div><span class="conviction-pill conviction-med">Medium</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="watch-list">
+                <div class="status-card"><strong>Intent:</strong> show that recommendations live inside the same command-center system, not as a separate retail screener.</div>
+                <div class="watch-item">
+                  <div class="watch-left">
+                    <div class="watch-ticker">ANET</div>
+                    <div class="watch-note">Networking remains strong, but the design should visually flag “great company / weaker timing”.</div>
+                  </div>
+                  <div class="watch-right">
+                    <div class="watch-price blue">Watch</div>
+                    <div class="watch-note">Crowded</div>
+                  </div>
+                </div>
+                <div class="watch-item">
+                  <div class="watch-left">
+                    <div class="watch-ticker">GLW</div>
+                    <div class="watch-note">Possible second-order materials/infrastructure angle if narrative broadens further.</div>
+                  </div>
+                  <div class="watch-right">
+                    <div class="watch-price green">Early</div>
+                    <div class="watch-note">Needs confirmation</div>
+                  </div>
+                </div>
+                <div class="watch-item">
+                  <div class="watch-left">
+                    <div class="watch-ticker">PWR</div>
+                    <div class="watch-note">Transmission and utility build-out read-through; fits the same visual category as grid names.</div>
+                  </div>
+                  <div class="watch-right">
+                    <div class="watch-price green">Strong</div>
+                    <div class="watch-note">Trend intact</div>
+                  </div>
+                </div>
+                <div class="status-card"><strong>Open design question:</strong> should recommendation rows stay table-like, or become larger cards with more visual explainability?</div>
+              </div>
+            </div>
+          </article>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

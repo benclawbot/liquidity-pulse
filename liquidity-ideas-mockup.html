@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Liquidity Pulse — Ideas</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface: #0b1326;
+      --surface-dim: #0b1326;
+      --surface-bright: #31394d;
+      --surface-container-lowest: #060e20;
+      --surface-container-low: #131b2e;
+      --surface-container: #171f33;
+      --surface-container-high: #222a3d;
+      --surface-container-highest: #2d3449;
+      --on-surface: #dae2fd;
+      --on-surface-variant: #c2c6d6;
+      --outline: #8c909f;
+      --outline-variant: #424754;
+      --primary: #adc6ff;
+      --primary-strong: #4d8eff;
+      --on-primary: #002e6a;
+      --secondary: #4edea3;
+      --secondary-strong: #00a572;
+      --tertiary: #ffb3ad;
+      --tertiary-strong: #ff5451;
+      --error: #ffb4ab;
+      --shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 18px;
+      --gutter: 16px;
+      --panel-padding: 20px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: linear-gradient(180deg, #091121 0%, #060c18 100%); color: var(--on-surface); overflow: hidden; }
+    .app-shell { height: 100vh; display: grid; grid-template-columns: 256px 1fr; grid-template-rows: 72px 1fr; grid-template-areas: "sidebar topbar" "sidebar main"; }
+    .topbar { grid-area: topbar; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: rgba(9, 16, 31, 0.84); border-bottom: 1px solid rgba(140, 144, 159, 0.18); backdrop-filter: blur(16px); position: relative; z-index: 10; }
+    .brand-row, .topbar-actions, .nav-tabs, .status-group { display: flex; align-items: center; gap: 18px; }
+    .brand { font-size: 18px; font-weight: 800; letter-spacing: -0.03em; color: var(--on-surface); }
+    .nav-tab { font-size: 14px; font-weight: 600; color: var(--on-surface-variant); padding: 8px 0; position: relative; cursor: pointer; }
+    .nav-tab.active { color: var(--primary-strong); }
+    .nav-tab.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -19px; height: 2px; border-radius: 999px; background: var(--primary-strong); box-shadow: 0 0 12px rgba(77, 142, 255, 0.5); }
+    .sidebar { grid-area: sidebar; background: linear-gradient(180deg, #0b1326 0%, #0a1020 100%); border-right: 1px solid rgba(140, 144, 159, 0.14); padding: 20px 16px 16px; display: flex; flex-direction: column; gap: 18px; min-height: 0; }
+    .sidebar-header { padding: 12px 12px 18px; border-bottom: 1px solid rgba(140, 144, 159, 0.12); }
+    .sidebar-kicker { font-size: 11px; font-weight: 800; color: var(--primary-strong); text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 6px; }
+    .sidebar-subtitle { font-size: 12px; color: var(--on-surface-variant); }
+    .side-nav { display: grid; gap: 6px; }
+    .side-link { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 14px; border-radius: var(--radius-lg); color: var(--on-surface-variant); background: transparent; border: 1px solid transparent; font-size: 14px; font-weight: 600; }
+    .side-link .left { display: flex; align-items: center; gap: 12px; }
+    .side-link.active { background: rgba(77, 142, 255, 0.10); color: var(--primary-strong); border-color: rgba(77, 142, 255, 0.28); box-shadow: inset 2px 0 0 var(--primary-strong); }
+    .side-link:hover:not(.active) { background: rgba(255,255,255,0.03); color: var(--on-surface); border-color: rgba(140, 144, 159, 0.12); }
+    .side-icon { width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.04); color: inherit; font-size: 12px; font-weight: 800; }
+    .sidebar-footer { margin-top: auto; display: grid; gap: 12px; padding-top: 12px; border-top: 1px solid rgba(140, 144, 159, 0.12); }
+    .mini-note { padding: 12px; border-radius: var(--radius-lg); background: rgba(255,255,255,0.03); border: 1px solid rgba(140, 144, 159, 0.12); color: var(--on-surface-variant); font-size: 12px; line-height: 1.5; }
+    .button-primary { border: none; border-radius: 10px; padding: 11px 14px; background: linear-gradient(180deg, #5f9cff 0%, #4d8eff 100%); color: #051529; font-size: 13px; font-weight: 800; letter-spacing: 0.02em; box-shadow: 0 10px 24px rgba(77, 142, 255, 0.25); cursor: pointer; }
+    .main { grid-area: main; min-width: 0; min-height: 0; overflow: auto; background: radial-gradient(circle at 35% 10%, rgba(77, 142, 255, 0.08), transparent 30%), radial-gradient(circle at 80% 0%, rgba(78, 222, 163, 0.06), transparent 24%), var(--surface-container-lowest); }
+    .canvas { max-width: 1580px; margin: 0 auto; padding: 24px 24px 32px; display: grid; gap: 16px; }
+    .hero-row { display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; }
+    .page-title { font-size: 46px; line-height: 1.05; font-weight: 800; letter-spacing: -0.03em; margin: 0 0 10px; }
+    .page-subtitle { max-width: 840px; margin: 0; color: var(--on-surface-variant); font-size: 16px; line-height: 1.6; }
+    .hero-meta { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+    .regime-badge, .chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
+    .regime-badge { background: rgba(78, 222, 163, 0.10); border: 1px solid rgba(78, 222, 163, 0.22); color: var(--secondary); }
+    .dot { width: 8px; height: 8px; border-radius: 999px; background: currentColor; box-shadow: 0 0 10px currentColor; }
+    .metrics-row, .grid-12 { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+    .metric-card, .panel, .idea-card, .watch-card { background: linear-gradient(180deg, rgba(34,42,61,0.92) 0%, rgba(23,31,51,0.96) 100%); border: 1px solid rgba(140, 144, 159, 0.14); border-radius: var(--radius-xl); box-shadow: var(--shadow); }
+    .metric-card { padding: 16px 18px; min-height: 98px; display: flex; flex-direction: column; justify-content: space-between; }
+    .metric-label, .panel-kicker, .micro-label, .table-head { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--on-surface-variant); }
+    .metric-value { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+    .metric-foot { color: var(--on-surface-variant); font-size: 12px; }
+    .green { color: var(--secondary); }
+    .red { color: var(--tertiary); }
+    .blue { color: var(--primary); }
+    .panel { padding: var(--panel-padding); position: relative; overflow: hidden; }
+    .panel-header { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 18px; position: relative; z-index: 2; }
+    .panel-title { margin: 0 0 6px; font-size: 23px; font-weight: 700; letter-spacing: -0.02em; }
+    .panel-subtitle { margin: 0; color: var(--on-surface-variant); font-size: 13px; line-height: 1.5; max-width: 700px; }
+    .tab-bar { display: flex; gap: 4px; margin-bottom: 18px; border-bottom: 1px solid rgba(140,144,159,0.12); padding-bottom: 0; }
+    .tab-btn { padding: 9px 16px; border-radius: 8px 8px 0 0; font-size: 13px; font-weight: 600; color: var(--on-surface-variant); background: transparent; border: 1px solid transparent; border-bottom: none; cursor: pointer; margin-bottom: -1px; }
+    .tab-btn:hover { color: var(--on-surface); }
+    .tab-btn.active { color: var(--primary-strong); background: rgba(77,142,255,0.08); border-color: rgba(140,144,159,0.14); border-bottom-color: var(--surface-container-low); }
+    .idea-card { padding: 20px; display: grid; gap: 14px; }
+    .idea-top { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: start; }
+    .idea-ticker { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; }
+    .idea-company { font-size: 13px; color: var(--on-surface-variant); margin-top: 3px; }
+    .idea-action { display: flex; gap: 8px; flex-wrap: wrap; }
+    .entry-pill, .conviction-pill { display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; padding: 6px 12px; font-size: 11px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; border: 1px solid transparent; font-variant-numeric: tabular-nums; }
+    .entry-scale { background: rgba(78,222,163,0.10); color: var(--secondary); border-color: rgba(78,222,163,0.18); }
+    .entry-wait { background: rgba(173,198,255,0.10); color: var(--primary); border-color: rgba(173,198,255,0.18); }
+    .entry-avoid { background: rgba(255,84,81,0.10); color: var(--tertiary); border-color: rgba(255,84,81,0.18); }
+    .conviction-high { background: rgba(78,222,163,0.10); color: var(--secondary); border-color: rgba(78,222,163,0.18); }
+    .conviction-med { background: rgba(173,198,255,0.10); color: var(--primary); border-color: rgba(173,198,255,0.18); }
+    .idea-body { font-size: 13px; color: var(--on-surface-variant); line-height: 1.55; }
+    .idea-meta-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; padding-top: 14px; border-top: 1px solid rgba(140,144,159,0.10); }
+    .idea-meta-item { display: grid; gap: 4px; }
+    .idea-meta-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--outline); }
+    .idea-meta-value { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .theme-tag { display: inline-flex; padding: 4px 9px; border-radius: 6px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; background: rgba(255,255,255,0.05); border: 1px solid rgba(140,144,159,0.14); color: var(--on-surface-variant); }
+    .signal-bar { display: flex; align-items: center; gap: 6px; }
+    .signal-dot { width: 8px; height: 8px; border-radius: 999px; background: currentColor; box-shadow: 0 0 6px currentColor; }
+    .watch-card { padding: 16px; display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; }
+    .watch-left { min-width: 0; }
+    .watch-ticker { font-size: 15px; font-weight: 800; }
+    .watch-note { font-size: 12px; color: var(--on-surface-variant); margin-top: 4px; line-height: 1.4; }
+    .watch-right { text-align: right; }
+    .watch-status { font-size: 13px; font-weight: 800; }
+    .watch-sub { font-size: 11px; color: var(--on-surface-variant); margin-top: 3px; }
+    .signal-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .signal-kpi { padding: 14px 16px; border-radius: 14px; background: rgba(11,19,38,0.65); border: 1px solid rgba(140,144,159,0.10); display: grid; gap: 6px; }
+    .signal-kpi-label { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--outline); }
+    .signal-kpi-value { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .full-panel { grid-column: 1 / -1; }
+    .criteria-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .criteria-card { padding: 16px; border-radius: 14px; background: rgba(11,19,38,0.60); border: 1px solid rgba(140,144,159,0.10); display: grid; gap: 10px; }
+    .criteria-name { font-size: 13px; font-weight: 700; }
+    .criteria-desc { font-size: 12px; color: var(--on-surface-variant); line-height: 1.45; }
+    .criteria-bar { width: 100%; height: 4px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,0.06); }
+    .criteria-bar-fill { height: 100%; border-radius: inherit; }
+    .progress { width: 100%; height: 5px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,0.06); }
+    .progress span { display: block; height: 100%; border-radius: inherit; background: currentColor; }
+    .tag { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; border: 1px solid transparent; }
+    .tag-green { background: rgba(78,222,163,0.10); color: var(--secondary); border-color: rgba(78,222,163,0.18); }
+    .tag-red { background: rgba(255,84,81,0.10); color: var(--tertiary); border-color: rgba(255,84,81,0.18); }
+    .tag-blue { background: rgba(173,198,255,0.10); color: var(--primary); border-color: rgba(173,198,255,0.18); }
+    @media (max-width: 1320px) { .hero-panel { grid-column: span 12; } .stack-panel { grid-column: span 12; } }
+    @media (max-width: 1080px) { .app-shell { grid-template-columns: 1fr; grid-template-rows: 72px auto 1fr; grid-template-areas: "topbar" "sidebar" "main"; } .sidebar { min-height: auto; } .hero-row { flex-direction: column; align-items: flex-start; } .hero-meta { justify-content: flex-start; } .idea-meta-row { grid-template-columns: repeat(2, 1fr); } .criteria-grid { grid-template-columns: repeat(2, 1fr); } }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-kicker">Terminal v1.0</div>
+        <div class="sidebar-subtitle">Institutional market intelligence</div>
+      </div>
+      <nav class="side-nav">
+        <div class="side-link">
+          <div class="left"><span class="side-icon">DS</span><span>Discovery</span></div>
+          <span>›</span>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">LF</span><span>Liquidity</span></div>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">IM</span><span>Impacts</span></div>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">HT</span><span>Hidden Trends</span></div>
+        </div>
+        <div class="side-link active">
+          <div class="left"><span class="side-icon">ID</span><span>Ideas</span></div>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">ST</span><span>Settings</span></div>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="mini-note">Design direction: dark command center, compact information density, restrained semantic color system, and high-trust institutional tone.</div>
+        <button class="button-primary">Refresh ideas</button>
+      </div>
+    </aside>
+
+    <header class="topbar">
+      <div class="brand-row">
+        <div class="brand">LIQUIDITY PULSE</div>
+        <div class="nav-tabs">
+          <div class="nav-tab">Discovery</div>
+          <div class="nav-tab">Flows</div>
+          <div class="nav-tab">Transmission</div>
+          <div class="nav-tab active">Recommendations</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <div class="status-group">
+          <div class="regime-badge"><span class="dot"></span>Liquidity Expanding</div>
+          <div class="chip" style="background:rgba(173,198,255,0.10); border:1px solid rgba(173,198,255,0.18); color:var(--primary);">Updated 19:46 CEST</div>
+        </div>
+        <div class="chip" style="background:rgba(255,255,255,0.04); border:1px solid rgba(140,144,159,0.18); color:var(--on-surface-variant);">Alerts 3</div>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="canvas">
+        <section class="hero-row">
+          <div>
+            <h1 class="page-title">Ideas</h1>
+            <p class="page-subtitle">Scored trade ideas aligned to confirmed transmission chains and liquidity regime. Not a screener — a curated selection with full explanatory context.</p>
+          </div>
+          <div class="hero-meta">
+            <div class="chip" style="background:rgba(78,222,163,0.10); border:1px solid rgba(78,222,163,0.18); color:var(--secondary);">4 Active</div>
+            <div class="chip" style="background:rgba(173,198,255,0.10); border:1px solid rgba(173,198,255,0.18); color:var(--primary);">AI Power Theme</div>
+          </div>
+        </section>
+
+        <section class="metrics-row">
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">Ideas in Portfolio</div>
+            <div class="metric-value blue">4</div>
+            <div class="metric-foot">1 high conviction · 3 medium conviction</div>
+          </div>
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">Avg Theme Fit Score</div>
+            <div class="metric-value green">0.81</div>
+            <div class="metric-foot">Weighted by conviction and position size</div>
+          </div>
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">Avg Regime Fit</div>
+            <div class="metric-value green">0.74</div>
+            <div class="metric-foot">Risk-on, liquidity expanding, rate-sensitive</div>
+          </div>
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">Crowding Risk</div>
+            <div class="metric-value">0.44</div>
+            <div class="metric-foot">Average positioning concentration score</div>
+          </div>
+        </section>
+
+        <section class="grid-12">
+          <div class="tab-bar" style="grid-column:1/-1">
+            <button class="tab-btn active">All Ideas (4)</button>
+            <button class="tab-btn">High Conviction (1)</button>
+            <button class="tab-btn">Scale In (2)</button>
+            <button class="tab-btn">Wait / Watch (2)</button>
+            <button class="tab-btn">Avoid (1)</button>
+          </div>
+
+          <!-- CEG — High conviction scale in -->
+          <article class="idea-card" style="grid-column:span 6">
+            <div class="idea-top">
+              <div>
+                <div class="idea-ticker">CEG</div>
+                <div class="idea-company">Constellation Energy — Nuclear + power generation</div>
+              </div>
+              <div class="idea-action">
+                <span class="entry-pill entry-scale">Scale In</span>
+                <span class="conviction-pill conviction-high">High Conviction</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <span class="theme-tag">AI Power Demand</span>
+              <span class="theme-tag">Nuclear Restart</span>
+              <span class="theme-tag">Grid Interconnection</span>
+            </div>
+            <div class="idea-body">Direct play on nuclear restart economics and long-term power purchase agreements being renegotiated at higher clears. Hyperscaler demand for firm power is the structural tailwind — not a cyclical trade. Less exposed to single-company execution risk than equipment names.</div>
+            <div class="idea-meta-row">
+              <div class="idea-meta-item">
+                <div class="idea-meta-label">Theme Fit</div>
+                <div class="idea-meta-value green">0.91</div>
+              </div>
+              <div class="idea-meta-item">
+                <div class="idea-meta-label">Regime Fit</div>
+                <div class="idea-meta-value green">0.88</div>
+              </div>
+              <div class="idea-meta-item">
+                <div class="idea-meta-label">Crowding</div>
+                <div class="idea-meta-value green">0.22</div>
+              </div>
+              <div class="idea-meta-item">
+                <div class="idea-meta-label">Entry Quality</div>
+                <div class="idea-meta-value blue">0.68</div>
+              </div>
+            </div>
+          </article>
+
+          <!-- ETN — Medium conviction wait -->
+          <article class="idea-card" style="grid-column:span 6">
+            <div class="idea-top">
+              <div>
+                <div class="idea-ticker">ETN</div>
+                <div class="idea-company">Eaton — Electrical equipment and洛</div>
+              </div>
+              <div class="idea-action">
+                <span class="entry-pill entry-wait">Wait</span>
+                <span class="conviction-pill conviction-med">Medium Conviction</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <span class="theme-tag">Data Centre Spillover</span>
+              <span class="theme-tag">Electrical Equip.</span>
+              <span class="theme-tag">Transformer Shortage</span>
+            </div>
+            <div class="idea-body">Best-in-class electrical equipment name with structural demand runway from data centre build-out. Near ATH — entry discipline required. Strong theme fit, weaker immediate timing. Patient capital justified.</div>
+            <div class="idea-meta-row">
+              <div class="idea-meta-item">
+                <div class="idea-meta-label">Theme Fit</div>
+                <div class="idea-meta-value green">0.88</div>
+              </div>
+              <div class="idea-meta-item">
+                <div class="idea-meta-label">Regime Fit</div>
+                <div class="idea-meta-value blue">0.71</div>
+              </div>
+              <div class="idea-meta-item">
+                <div class="idea-meta-label">Crowding</div>
+                <div class="idea-meta-value red">0.81</div>
+              </div>
+              <div class="idea-meta-item">
+                <div class="idea-meta-label">Entry Quality</div>
+                <div class="idea-meta-value red">0.34</div>
+              </div>
+            </div>
+          </article>
+
+          <!-- HUBB — Medium conviction wait -->
+          <article class="idea-card" style="grid-column:span 6">
+            <div class="idea-top">
+              <div>
+                <div class="idea-ticker">HUBB</div>
+                <div class="idea-company">Hubbell — Grid hardware and utility infrastructure</div>
+              </div>
+              <div class="idea-action">
+                <span class="entry-pill entry-wait">Wait</span>
+                <span class="conviction-pill conviction-med">Medium Conviction</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <span class="theme-tag">Transmission Build</span>
+              <span class="theme-tag">Grid Interconnection</span>
+              <span class="theme-tag">Utility Capex</span>
+            </div>
+            <div class="idea-body">Picks-and-shovels grid hardware exposure. Benefits if the market continues broadening from headline AI names into infrastructure. Already extended after the year-to-date run. Second-order winner if the thesis continues to confirm.</div>
+            <div class="idea-meta-row">
+              <div class="idea-meta-item">
+                <div class="idea-meta-label">Theme Fit</div>
+                <div class="idea-meta-value green">0.79</div>
+              </div>
+              <div class="idea-meta-item">
+                <div class="idea-meta-label">Regime Fit</div>
+                <div class="idea-meta-value green">0.76</div>
+              </div>
+              <div class="idea-meta-item">
+                <div class="idea-meta-label">Crowding</div>
+                <div class="idea-meta-value blue">0.62</div>
+              </div>
+              <div class="idea-meta-item">
+                <div class="idea-meta-label">Entry Quality</div>
+                <div class="idea-meta-value blue">0.44</div>
+              </div>
+            </div>
+          </article>
+
+          <!-- VRT — Avoid -->
+          <article class="idea-card" style="grid-column:span 6">
+            <div class="idea-top">
+              <div>
+                <div class="idea-ticker">VRT</div>
+                <div class="idea-company">Vertiv — Data centre thermal and electrical infrastructure</div>
+              </div>
+              <div class="idea-action">
+                <span class="entry-pill entry-avoid">Avoid Chase</span>
+                <span class="conviction-pill conviction-med">Medium Conviction</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <span class="theme-tag">Cooling Infrastructure</span>
+              <span class="theme-tag">Data Centre Build</span>
+            </div>
+            <div class="idea-body">Excellent business, strong structural tailwind, but broke out aggressively post-earnings. Risk-reward no longer attractive at current levels. Crowding at multi-year highs. Will revisit on pullback to $120 support zone.</div>
+            <div class="idea-meta-row">
+              <div class="idea-meta-item">
+                <div class="idea-meta-label">Theme Fit</div>
+                <div class="idea-meta-value green">0.85</div>
+              </div>
+              <div class="idea-meta-item">
+                <div class="idea-meta-label">Regime Fit</div>
+                <div class="idea-meta-value blue">0.68</div>
+              </div>
+              <div class="idea-meta-item">
+                <div class="idea-meta-label">Crowding</div>
+                <div class="idea-meta-value red">0.91</div>
+              </div>
+              <div class="idea-meta-item">
+                <div class="idea-meta-label">Entry Quality</div>
+                <div class="idea-meta-value red">0.18</div>
+              </div>
+            </div>
+          </article>
+
+          <!-- Watch list -->
+          <article class="panel full-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-kicker">Pre-qualification watchlist</div>
+                <h2 class="panel-title">Watch List</h2>
+                <p class="panel-subtitle">Names that are being tracked but have not yet cleared the scoring threshold. Only promoted to the ideas board once entry quality and crowding scores improve.</p>
+              </div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+              <div class="watch-card">
+                <div class="watch-left">
+                  <div class="watch-ticker">ANET</div>
+                  <div class="watch-note">Networking infrastructure — strong AI theme fit but crowded after data centre M&A wave. Watching for rotation out of chips into networking.</div>
+                </div>
+                <div class="watch-right">
+                  <div class="watch-status blue">Crowded</div>
+                  <div class="watch-sub">Entry: Watch $185</div>
+                </div>
+              </div>
+              <div class="watch-card">
+                <div class="watch-left">
+                  <div class="watch-ticker">GLW</div>
+                  <div class="watch-note">Second-order materials angle if grid interconnection narrative broadens further into physical infrastructure build-out.</div>
+                </div>
+                <div class="watch-right">
+                  <div class="watch-status green">Early</div>
+                  <div class="watch-sub">Needs confirmation</div>
+                </div>
+              </div>
+              <div class="watch-card">
+                <div class="watch-left">
+                  <div class="watch-ticker">PWR</div>
+                  <div class="watch-note">Transmission and utility build-out — fits the grid hardware angle. Confirmed thesis but already strong run; waiting for pullback.</div>
+                </div>
+                <div class="watch-right">
+                  <div class="watch-status green">Trend Intact</div>
+                  <div class="watch-sub">Entry: Watch $190</div>
+                </div>
+              </div>
+              <div class="watch-card">
+                <div class="watch-left">
+                  <div class="watch-ticker">FICO</div>
+                  <div class="watch-note">Hidden trend angle — AI-driven credit decisioning demand. Niche moat, high retention. Not on the standard quant screen.</div>
+                </div>
+                <div class="watch-right">
+                  <div class="watch-status blue">Niche moat</div>
+                  <div class="watch-sub">Small cap exposure</div>
+                </div>
+              </div>
+              <div class="watch-card">
+                <div class="watch-left">
+                  <div class="watch-ticker">DIXON</div>
+                  <div class="watch-note">India electrification play — under-the-radar grid equipment name with capex cycle exposure. FX headwind is the key risk.</div>
+                </div>
+                <div class="watch-right">
+                  <div class="watch-status blue">Emerging</div>
+                  <div class="watch-sub">FX risk</div>
+                </div>
+              </div>
+              <div class="watch-card">
+                <div class="watch-left">
+                  <div class="watch-ticker">CAT</div>
+                  <div class="watch-note">Reindustrialisation + power infrastructure capex. Not a pure-play but significant enough exposure. Institutional ownership still rising.</div>
+                </div>
+                <div class="watch-right">
+                  <div class="watch-status green">Confirmed</div>
+                  <div class="watch-sub">Macro indirect</div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <!-- Scoring criteria -->
+          <article class="panel" style="grid-column:1/-1">
+            <div class="panel-header">
+              <div>
+                <div class="panel-kicker">Scoring methodology</div>
+                <h2 class="panel-title">How Ideas Are Scored</h2>
+                <p class="panel-subtitle">Every idea is evaluated across four dimensions before it enters the board. No single dimension is sufficient — all four must clear their thresholds.</p>
+              </div>
+            </div>
+            <div class="criteria-grid">
+              <div class="criteria-card">
+                <div class="criteria-name" style="color:var(--secondary)">Theme Fit</div>
+                <div class="criteria-desc">Does the company benefit directly from a confirmed transmission chain or liquidity theme currently flagged on the dashboard? Passive sector exposure does not score.</div>
+                <div class="criteria-bar"><div class="criteria-bar-fill" style="width:91%;background:var(--secondary)"></div></div>
+                <div style="font-size:12px;color:var(--on-surface-variant)">Target: &gt; 0.75</div>
+              </div>
+              <div class="criteria-card">
+                <div class="criteria-name" style="color:var(--primary)">Regime Fit</div>
+                <div class="criteria-desc">Does the current liquidity regime — risk-on vs risk-off, expansion vs contraction — support this type of asset class and duration profile?</div>
+                <div class="criteria-bar"><div class="criteria-bar-fill" style="width:74%;background:var(--primary)"></div></div>
+                <div style="font-size:12px;color:var(--on-surface-variant)">Target: &gt; 0.65</div>
+              </div>
+              <div class="criteria-card">
+                <div class="criteria-name" style="color:#ffc84d">Crowding</div>
+                <div class="criteria-desc">Positioning concentration score from prime brokerage flow data, options open interest, and ETF flows. High crowding = less edge per unit of risk.</div>
+                <div class="criteria-bar"><div class="criteria-bar-fill" style="width:44%;background:#ffc84d"></div></div>
+                <div style="font-size:12px;color:var(--on-surface-variant)">Target: &lt; 0.60</div>
+              </div>
+              <div class="criteria-card">
+                <div class="criteria-name" style="color:var(--tertiary)">Entry Quality</div>
+                <div class="criteria-desc">Relative value vs historical trading range, vs sector, and vs fundamental成長. A strong idea with a poor entry is a watch-list name, not a portfolio idea.</div>
+                <div class="criteria-bar"><div class="criteria-bar-fill" style="width:68%;background:var(--tertiary)"></div></div>
+                <div style="font-size:12px;color:var(--on-surface-variant)">Target: &gt; 0.55</div>
+              </div>
+            </div>
+          </article>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

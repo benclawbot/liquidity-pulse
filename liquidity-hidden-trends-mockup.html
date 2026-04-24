@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Liquidity Pulse — Hidden Trends</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface: #0b1326;
+      --surface-dim: #0b1326;
+      --surface-bright: #31394d;
+      --surface-container-lowest: #060e20;
+      --surface-container-low: #131b2e;
+      --surface-container: #171f33;
+      --surface-container-high: #222a3d;
+      --surface-container-highest: #2d3449;
+      --on-surface: #dae2fd;
+      --on-surface-variant: #c2c6d6;
+      --outline: #8c909f;
+      --outline-variant: #424754;
+      --primary: #adc6ff;
+      --primary-strong: #4d8eff;
+      --on-primary: #002e6a;
+      --secondary: #4edea3;
+      --secondary-strong: #00a572;
+      --tertiary: #ffb3ad;
+      --tertiary-strong: #ff5451;
+      --error: #ffb4ab;
+      --shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 18px;
+      --gutter: 16px;
+      --panel-padding: 20px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: linear-gradient(180deg, #091121 0%, #060c18 100%); color: var(--on-surface); overflow: hidden; }
+    .app-shell { height: 100vh; display: grid; grid-template-columns: 256px 1fr; grid-template-rows: 72px 1fr; grid-template-areas: "sidebar topbar" "sidebar main"; }
+    .topbar { grid-area: topbar; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: rgba(9, 16, 31, 0.84); border-bottom: 1px solid rgba(140, 144, 159, 0.18); backdrop-filter: blur(16px); position: relative; z-index: 10; }
+    .brand-row, .topbar-actions, .nav-tabs, .status-group { display: flex; align-items: center; gap: 18px; }
+    .brand { font-size: 18px; font-weight: 800; letter-spacing: -0.03em; color: var(--on-surface); }
+    .nav-tab { font-size: 14px; font-weight: 600; color: var(--on-surface-variant); padding: 8px 0; position: relative; cursor: pointer; }
+    .nav-tab.active { color: var(--primary-strong); }
+    .nav-tab.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -19px; height: 2px; border-radius: 999px; background: var(--primary-strong); box-shadow: 0 0 12px rgba(77, 142, 255, 0.5); }
+    .sidebar { grid-area: sidebar; background: linear-gradient(180deg, #0b1326 0%, #0a1020 100%); border-right: 1px solid rgba(140, 144, 159, 0.14); padding: 20px 16px 16px; display: flex; flex-direction: column; gap: 18px; min-height: 0; }
+    .sidebar-header { padding: 12px 12px 18px; border-bottom: 1px solid rgba(140, 144, 159, 0.12); }
+    .sidebar-kicker { font-size: 11px; font-weight: 800; color: var(--primary-strong); text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 6px; }
+    .sidebar-subtitle { font-size: 12px; color: var(--on-surface-variant); }
+    .side-nav { display: grid; gap: 6px; }
+    .side-link { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 14px; border-radius: var(--radius-lg); color: var(--on-surface-variant); background: transparent; border: 1px solid transparent; font-size: 14px; font-weight: 600; }
+    .side-link .left { display: flex; align-items: center; gap: 12px; }
+    .side-link.active { background: rgba(77, 142, 255, 0.10); color: var(--primary-strong); border-color: rgba(77, 142, 255, 0.28); box-shadow: inset 2px 0 0 var(--primary-strong); }
+    .side-link:hover:not(.active) { background: rgba(255,255,255,0.03); color: var(--on-surface); border-color: rgba(140, 144, 159, 0.12); }
+    .side-icon { width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.04); color: inherit; font-size: 12px; font-weight: 800; }
+    .sidebar-footer { margin-top: auto; display: grid; gap: 12px; padding-top: 12px; border-top: 1px solid rgba(140, 144, 159, 0.12); }
+    .mini-note { padding: 12px; border-radius: var(--radius-lg); background: rgba(255,255,255,0.03); border: 1px solid rgba(140, 144, 159, 0.12); color: var(--on-surface-variant); font-size: 12px; line-height: 1.5; }
+    .button-primary { border: none; border-radius: 10px; padding: 11px 14px; background: linear-gradient(180deg, #5f9cff 0%, #4d8eff 100%); color: #051529; font-size: 13px; font-weight: 800; letter-spacing: 0.02em; box-shadow: 0 10px 24px rgba(77, 142, 255, 0.25); cursor: pointer; }
+    .main { grid-area: main; min-width: 0; min-height: 0; overflow: auto; background: radial-gradient(circle at 35% 10%, rgba(77, 142, 255, 0.08), transparent 30%), radial-gradient(circle at 80% 0%, rgba(78, 222, 163, 0.06), transparent 24%), var(--surface-container-lowest); }
+    .canvas { max-width: 1580px; margin: 0 auto; padding: 24px 24px 32px; display: grid; gap: 16px; }
+    .hero-row { display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; }
+    .page-title { font-size: 46px; line-height: 1.05; font-weight: 800; letter-spacing: -0.03em; margin: 0 0 10px; }
+    .page-subtitle { max-width: 840px; margin: 0; color: var(--on-surface-variant); font-size: 16px; line-height: 1.6; }
+    .hero-meta { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+    .regime-badge, .chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
+    .regime-badge { background: rgba(78, 222, 163, 0.10); border: 1px solid rgba(78, 222, 163, 0.22); color: var(--secondary); }
+    .dot { width: 8px; height: 8px; border-radius: 999px; background: currentColor; box-shadow: 0 0 10px currentColor; }
+    .metrics-row, .grid-12 { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+    .metric-card, .panel, .trend-card, .pattern-item { background: linear-gradient(180deg, rgba(34,42,61,0.92) 0%, rgba(23,31,51,0.96) 100%); border: 1px solid rgba(140, 144, 159, 0.14); border-radius: var(--radius-xl); box-shadow: var(--shadow); }
+    .metric-card { padding: 16px 18px; min-height: 98px; display: flex; flex-direction: column; justify-content: space-between; }
+    .metric-label, .panel-kicker, .micro-label, .table-head { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--on-surface-variant); }
+    .metric-value { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+    .metric-foot { color: var(--on-surface-variant); font-size: 12px; }
+    .green { color: var(--secondary); }
+    .red { color: var(--tertiary); }
+    .blue { color: var(--primary); }
+    .amber { color: #ffc84d; }
+    .panel { padding: var(--panel-padding); position: relative; overflow: hidden; }
+    .panel-header { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 18px; position: relative; z-index: 2; }
+    .panel-title { margin: 0 0 6px; font-size: 23px; font-weight: 700; letter-spacing: -0.02em; }
+    .panel-subtitle { margin: 0; color: var(--on-surface-variant); font-size: 13px; line-height: 1.5; max-width: 700px; }
+    .hero-panel { grid-column: span 8; min-height: 470px; background: radial-gradient(circle at 50% 50%, rgba(77, 142, 255, 0.09), transparent 30%), radial-gradient(circle at 20% 10%, rgba(78, 222, 163, 0.05), transparent 24%), linear-gradient(180deg, rgba(23,31,51,0.98), rgba(19,27,46,0.98)); }
+    .hero-surface { position: relative; min-height: 400px; border-radius: 16px; background: linear-gradient(180deg, rgba(9,15,28,0.52), rgba(10,14,25,0.18)); border: 1px solid rgba(140, 144, 159, 0.08); overflow: hidden; }
+    .heatmap-area { padding: 24px; height: 100%; display: grid; gap: 10px; }
+    .heatmap-header { display: flex; justify-content: space-between; align-items: center; }
+    .heatmap-title { font-size: 14px; font-weight: 700; }
+    .heatmap-subtitle { font-size: 12px; color: var(--on-surface-variant); margin-top: 3px; }
+    .heatmap-meta { display: flex; gap: 8px; align-items: center; }
+    .heatmap-grid { display: grid; grid-template-columns: 160px repeat(8, 1fr); gap: 6px; align-items: center; }
+    .hm-row-label { font-size: 12px; font-weight: 700; color: var(--on-surface-variant); text-align: right; padding-right: 10px; }
+    .hm-cell { aspect-ratio: 2; border-radius: 6px; display: grid; place-items: center; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; border: 1px solid rgba(255,255,255,0.04); cursor: default; transition: filter 0.15s; }
+    .hm-cell:hover { filter: brightness(1.18); }
+    .hm-header { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--outline); text-align: center; }
+    .hm-week { text-align: center; }
+    .pulse-dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: currentColor; box-shadow: 0 0 8px currentColor; animation: pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+    .trend-card { padding: 18px; display: grid; gap: 14px; }
+    .trend-top { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+    .trend-eyebrow { display: flex; gap: 8px; align-items: center; }
+    .trend-stage { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; }
+    .stage-early { background: rgba(173,198,255,0.10); color: var(--primary); border: 1px solid rgba(173,198,255,0.18); }
+    .stage-building { background: rgba(78,222,163,0.10); color: var(--secondary); border: 1px solid rgba(78,222,163,0.18); }
+    .stage-mature { background: rgba(255,200,77,0.10); color: #ffc84d; border: 1px solid rgba(255,200,77,0.18); }
+    .stage-fading { background: rgba(255,84,81,0.10); color: var(--tertiary); border: 1px solid rgba(255,84,81,0.18); }
+    .trend-title { font-size: 16px; font-weight: 800; letter-spacing: -0.02em; margin-top: 8px; }
+    .trend-desc { font-size: 13px; color: var(--on-surface-variant); line-height: 1.55; }
+    .trend-evidence { padding: 12px 14px; border-radius: 10px; background: rgba(11,19,38,0.65); border-left: 2px solid var(--outline-variant); }
+    .evidence-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--outline); margin-bottom: 6px; }
+    .evidence-text { font-size: 12px; color: var(--on-surface-variant); line-height: 1.5; }
+    .trend-footer { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding-top: 12px; border-top: 1px solid rgba(140,144,159,0.10); }
+    .trend-stat { display: grid; gap: 4px; }
+    .trend-stat-label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--outline); }
+    .trend-stat-value { font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .pattern-item { padding: 14px 16px; display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center; }
+    .pattern-name { font-size: 14px; font-weight: 700; }
+    .pattern-meta { font-size: 12px; color: var(--on-surface-variant); margin-top: 3px; }
+    .pattern-sig { font-size: 12px; font-weight: 800; }
+    .progress { width: 100%; height: 5px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,0.06); }
+    .progress span { display: block; height: 100%; border-radius: inherit; background: currentColor; }
+    .stack-panel { grid-column: span 4; display: grid; gap: 16px; }
+    .full-panel { grid-column: 1 / -1; }
+    .tag { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; border: 1px solid transparent; }
+    .tag-green { background: rgba(78,222,163,0.10); color: var(--secondary); border-color: rgba(78,222,163,0.18); }
+    .tag-red { background: rgba(255,84,81,0.10); color: var(--tertiary); border-color: rgba(255,84,81,0.18); }
+    .tag-blue { background: rgba(173,198,255,0.10); color: var(--primary); border-color: rgba(173,198,255,0.18); }
+    .tag-amber { background: rgba(255,200,77,0.10); color: #ffc84d; border-color: rgba(255,200,77,0.18); }
+    @media (max-width: 1320px) { .hero-panel { grid-column: span 12; } .stack-panel { grid-column: span 12; } }
+    @media (max-width: 1080px) { .app-shell { grid-template-columns: 1fr; grid-template-rows: 72px auto 1fr; grid-template-areas: "topbar" "sidebar" "main"; } .sidebar { min-height: auto; } .hero-row { flex-direction: column; align-items: flex-start; } .hero-meta { justify-content: flex-start; } .heatmap-grid { grid-template-columns: 100px repeat(8, 1fr); } }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-kicker">Terminal v1.0</div>
+        <div class="sidebar-subtitle">Institutional market intelligence</div>
+      </div>
+      <nav class="side-nav">
+        <div class="side-link">
+          <div class="left"><span class="side-icon">DS</span><span>Discovery</span></div>
+          <span>›</span>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">LF</span><span>Liquidity</span></div>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">IM</span><span>Impacts</span></div>
+        </div>
+        <div class="side-link active">
+          <div class="left"><span class="side-icon">HT</span><span>Hidden Trends</span></div>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">ID</span><span>Ideas</span></div>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">ST</span><span>Settings</span></div>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="mini-note">Design direction: dark command center, compact information density, restrained semantic color system, and high-trust institutional tone.</div>
+        <button class="button-primary">Refresh trends</button>
+      </div>
+    </aside>
+
+    <header class="topbar">
+      <div class="brand-row">
+        <div class="brand">LIQUIDITY PULSE</div>
+        <div class="nav-tabs">
+          <div class="nav-tab">Discovery</div>
+          <div class="nav-tab">Flows</div>
+          <div class="nav-tab">Transmission</div>
+          <div class="nav-tab">Recommendations</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <div class="status-group">
+          <div class="regime-badge"><span class="dot"></span>Liquidity Expanding</div>
+          <div class="chip" style="background:rgba(173,198,255,0.10); border:1px solid rgba(173,198,255,0.18); color:var(--primary);">Updated 19:46 CEST</div>
+        </div>
+        <div class="chip" style="background:rgba(255,255,255,0.04); border:1px solid rgba(140,144,159,0.18); color:var(--on-surface-variant);">Alerts 3</div>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="canvas">
+        <section class="hero-row">
+          <div>
+            <h1 class="page-title">Hidden Trends</h1>
+            <p class="page-subtitle">Structural shifts forming beneath the noise — detected via cross-asset correlation drift, positioning anomalies, and cross-chain flow divergence before they reach consensus.</p>
+          </div>
+          <div class="hero-meta">
+            <div class="chip" style="background:rgba(78,222,163,0.10); border:1px solid rgba(78,222,163,0.18); color:var(--secondary);">3 Active</div>
+            <div class="chip" style="background:rgba(173,198,255,0.10); border:1px solid rgba(173,198,255,0.18); color:var(--primary);">Weekly view</div>
+          </div>
+        </section>
+
+        <section class="metrics-row">
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">Hidden Trends Detected</div>
+            <div class="metric-value blue">3</div>
+            <div class="metric-foot">1 early stage · 1 building · 1 mature</div>
+          </div>
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">Avg Confidence</div>
+            <div class="metric-value green">0.72</div>
+            <div class="metric-foot">Cross-asset correlation + flow confirmation</div>
+          </div>
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">Days in Advance</div>
+            <div class="metric-value amber">8–14d</div>
+            <div class="metric-foot">Median lead time before consensus</div>
+          </div>
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">False Positive Rate</div>
+            <div class="metric-value">18%</div>
+            <div class="metric-foot">Historical average across all flagged trends</div>
+          </div>
+        </section>
+
+        <section class="grid-12">
+          <article class="panel hero-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-kicker">Correlation heatmap</div>
+                <h2 class="panel-title">Cross-Asset Correlation Drift</h2>
+                <p class="panel-subtitle">Rolling 20-day correlation between non-standard asset pairs — the ones that don't appear on conventional quant screens. Cells shaded by correlation strength and direction. Click a cell to inspect the pair.</p>
+              </div>
+              <div class="heatmap-meta">
+                <span class="tag tag-green">▲ Strengthening</span>
+                <span class="tag tag-amber">◔ Diverging</span>
+                <span class="tag" style="background:rgba(140,144,159,0.08);color:var(--outline);border-color:rgba(140,144,159,0.18)">◔ Flat</span>
+              </div>
+            </div>
+            <div class="hero-surface">
+              <div class="heatmap-area">
+                <div class="heatmap-grid" style="grid-template-rows: auto repeat(8, 1fr)">
+                  <!-- Header row -->
+                  <div class="hm-header"></div>
+                  <div class="hm-header hm-week">W1</div>
+                  <div class="hm-header hm-week">W2</div>
+                  <div class="hm-header hm-week">W3</div>
+                  <div class="hm-header hm-week">W4</div>
+                  <div class="hm-header hm-week">W5</div>
+                  <div class="hm-header hm-week">W6</div>
+                  <div class="hm-header hm-week">W7</div>
+                  <div class="hm-header hm-week">W8</div>
+
+                  <!-- NVT vs Gold -->
+                  <div class="hm-row-label">NVT / Gold</div>
+                  <div class="hm-cell" style="background:rgba(78,222,163,0.18);color:#d9fff0">0.61</div>
+                  <div class="hm-cell" style="background:rgba(78,222,163,0.22);color:#d9fff0">0.64</div>
+                  <div class="hm-cell" style="background:rgba(78,222,163,0.26);color:#d9fff0">0.68</div>
+                  <div class="hm-cell" style="background:rgba(78,222,163,0.32);color:#d9fff0">0.72</div>
+                  <div class="hm-cell" style="background:rgba(78,222,163,0.38);color:#d9fff0">0.76</div>
+                  <div class="hm-cell" style="background:rgba(78,222,163,0.44);color:#d9fff0">0.81</div>
+                  <div class="hm-cell" style="background:rgba(78,222,163,0.48);color:#d9fff0">0.84</div>
+                  <div class="hm-cell" style="background:rgba(78,222,163,0.52);color:#d9fff0">0.87</div>
+
+                  <!-- ETH basis vs VIX -->
+                  <div class="hm-row-label">ETH Basis / VIX</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">0.12</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">0.08</div>
+                  <div class="hm-cell" style="background:rgba(255,84,81,0.12);color:#ffd1cd">-0.14</div>
+                  <div class="hm-cell" style="background:rgba(255,84,81,0.22);color:#ffe4e1">-0.31</div>
+                  <div class="hm-cell" style="background:rgba(255,84,81,0.30);color:#ffe4e1">-0.44</div>
+                  <div class="hm-cell" style="background:rgba(255,84,81,0.38);color:#ffe4e1">-0.56</div>
+                  <div class="hm-cell" style="background:rgba(255,84,81,0.42);color:#ffe4e1">-0.62</div>
+                  <div class="hm-cell" style="background:rgba(255,84,81,0.44);color:#ffe4e1">-0.64</div>
+
+                  <!-- CDX IG vs TLT -->
+                  <div class="hm-row-label">CDX IG / TLT</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">-0.21</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">-0.18</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.12);color:#8c909f">-0.15</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">-0.09</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">-0.04</div>
+                  <div class="hm-cell" style="background:rgba(173,198,255,0.14);color:#dce7ff">0.11</div>
+                  <div class="hm-cell" style="background:rgba(173,198,255,0.22);color:#dce7ff">0.24</div>
+                  <div class="hm-cell" style="background:rgba(173,198,255,0.30);color:#dce7ff">0.38</div>
+
+                  <!-- Cross-chain TVL -->
+                  <div class="hm-row-label">ETH TVL / SOL</div>
+                  <div class="hm-cell" style="background:rgba(78,222,163,0.24);color:#d9fff0">0.58</div>
+                  <div class="hm-cell" style="background:rgba(78,222,163,0.22);color:#d9fff0">0.54</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">0.41</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">0.38</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">0.29</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">0.18</div>
+                  <div class="hm-cell" style="background:rgba(255,84,81,0.14);color:#ffd1cd">-0.12</div>
+                  <div class="hm-cell" style="background:rgba(255,84,81,0.22);color:#ffd1cd">-0.28</div>
+
+                  <!-- Steel vs Copper -->
+                  <div class="hm-row-label">Steel / Copper</div>
+                  <div class="hm-cell" style="background:rgba(173,198,255,0.14);color:#dce7ff">0.44</div>
+                  <div class="hm-cell" style="background:rgba(173,198,255,0.18);color:#dce7ff">0.48</div>
+                  <div class="hm-cell" style="background:rgba(173,198,255,0.24);color:#dce7ff">0.53</div>
+                  <div class="hm-cell" style="background:rgba(173,198,255,0.30);color:#dce7ff">0.61</div>
+                  <div class="hm-cell" style="background:rgba(173,198,255,0.34);color:#dce7ff">0.68</div>
+                  <div class="hm-cell" style="background:rgba(173,198,255,0.40);color:#dce7ff">0.74</div>
+                  <div class="hm-cell" style="background:rgba(173,198,255,0.44);color:#dce7ff">0.79</div>
+                  <div class="hm-cell" style="background:rgba(173,198,255,0.50);color:#dce7ff">0.83</div>
+
+                  <!-- Yen carry vs HY credit -->
+                  <div class="hm-row-label">JPY Carry / HY</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">0.04</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">0.09</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.12);color:#8c909f">0.17</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.18);color:#8c909f">0.24</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.26);color:#8c909f">0.31</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.32);color:#8c909f">0.38</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.38);color:#8c909f">0.44</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.42);color:#8c909f">0.49</div>
+
+                  <!-- Lithium vs uranium -->
+                  <div class="hm-row-label">Lithium / Uranium</div>
+                  <div class="hm-cell" style="background:rgba(173,198,255,0.14);color:#dce7ff">0.38</div>
+                  <div class="hm-cell" style="background:rgba(173,198,255,0.18);color:#dce7ff">0.42</div>
+                  <div class="hm-cell" style="background:rgba(173,198,255,0.20);color:#dce7ff">0.45</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">0.38</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">0.29</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">0.18</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">0.11</div>
+                  <div class="hm-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">0.06</div>
+                </div>
+
+                <!-- Summary row -->
+                <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid rgba(140,144,159,0.10)">
+                  <div style="font-size:12px;color:var(--on-surface-variant)">
+                    <span style="color:var(--secondary)">NVT/Gold</span> and <span style="color:var(--primary)">Steel/Copper</span> showing strongest structural correlation emergence. Click any cell to expand pair analysis.
+                  </div>
+                  <div style="display:flex;gap:16px">
+                    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--on-surface-variant)">
+                      <div style="width:10px;height:10px;border-radius:3px;background:rgba(78,222,163,0.52)"></div>Strong +
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--on-surface-variant)">
+                      <div style="width:10px;height:10px;border-radius:3px;background:rgba(255,200,77,0.38)"></div>Drifting
+                    </div>
+                    <div style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--on-surface-variant)">
+                      <div style="width:10px;height:10px;border-radius:3px;background:rgba(255,84,81,0.44)"></div>Strong −
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <div class="stack-panel">
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-kicker">Confirmed anomaly</div>
+                  <h2 class="panel-title">Positioning Anomalies</h2>
+                  <p class="panel-subtitle">Non-consensus positioning signals — where smart money is quietly building or reducing exposure before the price follows.</p>
+                </div>
+              </div>
+              <div style="display:grid;gap:10px">
+                <div class="pattern-item" style="border-color:rgba(78,222,163,0.20)">
+                  <div>
+                    <div class="pattern-name">TLT Options Skew</div>
+                    <div class="pattern-meta">Hedge funds building long duration via 2y note futs — not TLT ETF</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div class="pattern-sig green">Accumulating</div>
+                    <div style="font-size:11px;color:var(--on-surface-variant);margin-top:3px">7-week build</div>
+                  </div>
+                </div>
+                <div class="pattern-item" style="border-color:rgba(173,198,255,0.18)">
+                  <div>
+                    <div class="pattern-name">ETH Staking Derivative Gap</div>
+                    <div class="pattern-meta">stETH vs ETH liquidity premium compressing — institutional entry via ETF</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div class="pattern-sig blue">Diverging</div>
+                    <div style="font-size:11px;color:var(--on-surface-variant);margin-top:3px">3-week divergence</div>
+                  </div>
+                </div>
+                <div class="pattern-item" style="border-color:rgba(255,200,77,0.16)">
+                  <div>
+                    <div class="pattern-name">Copper Mini vs COMEX</div>
+                    <div class="pattern-meta">Tokyocommodity mini copper premium vs COMEX — China reserve signal</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div class="pattern-sig amber">Emerging</div>
+                    <div style="font-size:11px;color:var(--on-surface-variant);margin-top:3px">2-week emerging</div>
+                  </div>
+                </div>
+                <div class="pattern-item" style="border-color:rgba(255,84,81,0.14)">
+                  <div>
+                    <div class="pattern-name">HY Credit Short End</div>
+                    <div class="pattern-meta">Short-dated HY being quietly covered — yield curve steepener signal</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div class="pattern-sig red">Reducing short</div>
+                    <div style="font-size:11px;color:var(--on-surface-variant);margin-top:3px">4-week unwind</div>
+                  </div>
+                </div>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-kicker">Signal history</div>
+                  <h2 class="panel-title">Recent Flagged Patterns</h2>
+                </div>
+              </div>
+              <div style="display:grid;gap:10px">
+                <div class="pattern-item" style="border-color:rgba(78,222,163,0.18)">
+                  <div>
+                    <div class="pattern-name">AI Infrastructure Capex → Utilities</div>
+                    <div class="pattern-meta">XLU / XLK ratio breaking 3-year downtrend · Confirmed 8 days later</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div class="pattern-sig green">+12.4%</div>
+                    <div style="font-size:11px;color:var(--on-surface-variant);margin-top:3px">Confirmed ✓</div>
+                  </div>
+                </div>
+                <div class="pattern-item" style="border-color:rgba(255,84,81,0.16)">
+                  <div>
+                    <div class="pattern-name">Gold / Bitcoin Neg. Correlation</div>
+                    <div class="pattern-meta">12-week rolling correlation flipped negative · Called 18 days early</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div class="pattern-sig green">+8.1%</div>
+                    <div style="font-size:11px;color:var(--on-surface-variant);margin-top:3px">Confirmed ✓</div>
+                  </div>
+                </div>
+                <div class="pattern-item" style="border-color:rgba(173,198,255,0.14)">
+                  <div>
+                    <div class="pattern-name">JPY Carry Unwind Signal</div>
+                    <div class="pattern-meta">Carry index put/call ratio spiking · JPY vol compressing · Flagged</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div class="pattern-sig amber">+3.2%</div>
+                    <div style="font-size:11px;color:var(--on-surface-variant);margin-top:3px">Partial ✓</div>
+                  </div>
+                </div>
+                <div class="pattern-item" style="border-color:rgba(255,84,81,0.12)">
+                  <div>
+                    <div class="pattern-name">Regional Bank Credit Default</div>
+                    <div class="pattern-meta">KRE-CDS basis blowout · Called 11 days beforeZBlowout</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div class="pattern-sig green">+14.8%</div>
+                    <div style="font-size:11px;color:var(--on-surface-variant);margin-top:3px">Confirmed ✓</div>
+                  </div>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <!-- Trend cards -->
+          <div class="trend-card" style="grid-column:span 6">
+            <div class="trend-top">
+              <div>
+                <div class="trend-eyebrow">
+                  <span class="trend-stage stage-early">Early Stage</span>
+                  <span class="pulse-dot" style="color:var(--primary)"></span>
+                </div>
+                <div class="trend-title">NVT Signal Flipping Gold-Hedge Narrative</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                <div class="pattern-sig green">+18 pts NVT</div>
+                <div class="pattern-sig" style="font-size:11px;color:var(--on-surface-variant)">Lead: ~14 days</div>
+              </div>
+            </div>
+            <div class="trend-desc">Network Value to Transactions ratio for Bitcoin is decoupling from its historical relationship with gold. When NVT rises alongside gold (instead of inversely), it historically signals institutional-grade capital entering the system through non-exchange channels — a structural bid, not speculative flow. Currently at 8-week highs.</div>
+            <div class="trend-evidence">
+              <div class="evidence-label">Confirming evidence</div>
+              <div class="evidence-text">Coinbase premium flipped positive for the first time in 6 weeks. BTC ETF 30-day inflow pace is running 2.4x the 90-day average. Cold wallet accumulation up 31% WoW. These three together have preceded major Bitcoin upcycles in 2021 and 2024.</div>
+            </div>
+            <div class="trend-footer">
+              <div class="trend-stat">
+                <div class="trend-stat-label">Confidence</div>
+                <div class="trend-stat-value green">0.71</div>
+              </div>
+              <div class="trend-stat">
+                <div class="trend-stat-label">Signal Age</div>
+                <div class="trend-stat-value">6 days</div>
+              </div>
+              <div class="trend-stat">
+                <div class="trend-stat-label">Consensus?</div>
+                <div class="trend-stat-value" style="color:var(--primary)">Not yet</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="trend-card" style="grid-column:span 6">
+            <div class="trend-top">
+              <div>
+                <div class="trend-eyebrow">
+                  <span class="trend-stage stage-building">Building</span>
+                  <span class="pulse-dot" style="color:var(--secondary)"></span>
+                </div>
+                <div class="trend-title">ETH Basis vs VIX Regime Break</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                <div class="pattern-sig red">-0.64 corr</div>
+                <div style="font-size:11px;color:var(--on-surface-variant)">Lead: ~10 days</div>
+              </div>
+            </div>
+            <div class="trend-desc">The ETH perpetual funding rate basis has historically moved inversely to VIX — when risk appetite falls, funding rates compress and VIX rises. Over the past 8 weeks this relationship has broken down: ETH funding basis remains elevated even as VIX climbs. Smart money is either hedged differently, or is using ETH as a macro hedge they didn't previously.</div>
+            <div class="trend-evidence">
+              <div class="evidence-label">Confirming evidence</div>
+              <div class="evidence-text">ETH/BTC ratio holding above 0.040 despite BTC dominance rising. stETH discount to ETH narrowing to 0.08% — thinnest since January. Exchange ETH reserves at 30-month lows. These are not retail signals.</div>
+            </div>
+            <div class="trend-footer">
+              <div class="trend-stat">
+                <div class="trend-stat-label">Confidence</div>
+                <div class="trend-stat-value green">0.76</div>
+              </div>
+              <div class="trend-stat">
+                <div class="trend-stat-label">Signal Age</div>
+                <div class="trend-stat-value">12 days</div>
+              </div>
+              <div class="trend-stat">
+                <div class="trend-stat-label">Consensus?</div>
+                <div class="trend-stat-value" style="color:#ffc84d">Early mentions</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="trend-card" style="grid-column:span 6">
+            <div class="trend-top">
+              <div>
+                <div class="trend-eyebrow">
+                  <span class="trend-stage stage-mature">Mature</span>
+                </div>
+                <div class="trend-title">Steel / Copper Ratio Inflection Point</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                <div class="pattern-sig blue">+0.83 corr</div>
+                <div style="font-size:11px;color:var(--on-surface-variant)">Lead: ~22 days</div>
+              </div>
+            </div>
+            <div class="trend-desc">Steel and copper correlation has been rising steadily for 8 weeks — now at 0.83. This is historically a late-cycle signal: when industrial metals begin moving in lockstep, it typically means the reindustrialisation capex cycle is in its latter half. China stimulus effects may be amplifying this beyond normal supply/demand dynamics. Mature stage — less alpha, still actionable with tight stops.</div>
+            <div class="trend-evidence">
+              <div class="evidence-label">Confirming evidence</div>
+              <div class="evidence-text">CRB Raw Industrials Index breaking 3-year resistance. China's Caixin PMI new export orders component at 18-month high. Koreacopper premiums at 2-year highs. DXY weakness adding additional tailwind — but the structural component is dominant here.</div>
+            </div>
+            <div class="trend-footer">
+              <div class="trend-stat">
+                <div class="trend-stat-label">Confidence</div>
+                <div class="trend-stat-value amber">0.69</div>
+              </div>
+              <div class="trend-stat">
+                <div class="trend-stat-label">Signal Age</div>
+                <div class="trend-stat-value">22 days</div>
+              </div>
+              <div class="trend-stat">
+                <div class="trend-stat-label">Consensus?</div>
+                <div class="trend-stat-value" style="color:var(--secondary)">Broadly known</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="trend-card" style="grid-column:span 6">
+            <div class="trend-top">
+              <div>
+                <div class="trend-eyebrow">
+                  <span class="trend-stage stage-early">Early Stage</span>
+                  <span class="pulse-dot" style="color:var(--primary)"></span>
+                </div>
+                <div class="trend-title">CDX IG / TLT Correlation Flip — Secular Bear Market Signal</div>
+              </div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">
+                <div class="pattern-sig blue">+0.38 corr</div>
+                <div style="font-size:11px;color:var(--on-surface-variant)">Lead: ~8 days</div>
+              </div>
+            </div>
+            <div class="trend-desc">Investment grade credit default swaps (CDX IG) and long Treasuries (TLT) have been negatively correlated for most of the past decade — when you need the bond hedge, credit is also safe. That relationship has broken down: they are now positively correlated, meaning both are selling off simultaneously. Historically this only happens in secular bear market regimes or when fiscal dominance is the market's dominant concern.</div>
+            <div class="trend-evidence">
+              <div class="evidence-label">Confirming evidence</div>
+              <div class="evidence-text">UST 10y real yields breaking above 2.1% — highest since 2023. CBOE corporate bond volatility index at 18-month highs. Treasury's 3-month funding cost now exceeds 5.2% — fiscal channel concern confirmed by the fact that the Treasury is actively managing its issuance schedule. This is the signal.</div>
+            </div>
+            <div class="trend-footer">
+              <div class="trend-stat">
+                <div class="trend-stat-label">Confidence</div>
+                <div class="trend-stat-value green">0.74</div>
+              </div>
+              <div class="trend-stat">
+                <div class="trend-stat-label">Signal Age</div>
+                <div class="trend-stat-value">8 days</div>
+              </div>
+              <div class="trend-stat">
+                <div class="trend-stat-label">Consensus?</div>
+                <div class="trend-stat-value" style="color:var(--primary)">Not yet</div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

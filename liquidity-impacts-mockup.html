@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Liquidity Pulse — Market Impacts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface: #0b1326;
+      --surface-dim: #0b1326;
+      --surface-bright: #31394d;
+      --surface-container-lowest: #060e20;
+      --surface-container-low: #131b2e;
+      --surface-container: #171f33;
+      --surface-container-high: #222a3d;
+      --surface-container-highest: #2d3449;
+      --on-surface: #dae2fd;
+      --on-surface-variant: #c2c6d6;
+      --outline: #8c909f;
+      --outline-variant: #424754;
+      --primary: #adc6ff;
+      --primary-strong: #4d8eff;
+      --on-primary: #002e6a;
+      --secondary: #4edea3;
+      --secondary-strong: #00a572;
+      --tertiary: #ffb3ad;
+      --tertiary-strong: #ff5451;
+      --error: #ffb4ab;
+      --shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 18px;
+      --gutter: 16px;
+      --panel-padding: 20px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: linear-gradient(180deg, #091121 0%, #060c18 100%); color: var(--on-surface); overflow: hidden; }
+    .app-shell { height: 100vh; display: grid; grid-template-columns: 256px 1fr; grid-template-rows: 72px 1fr; grid-template-areas: "sidebar topbar" "sidebar main"; }
+    .topbar { grid-area: topbar; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: rgba(9, 16, 31, 0.84); border-bottom: 1px solid rgba(140, 144, 159, 0.18); backdrop-filter: blur(16px); position: relative; z-index: 10; }
+    .brand-row, .topbar-actions, .nav-tabs, .status-group { display: flex; align-items: center; gap: 18px; }
+    .brand { font-size: 18px; font-weight: 800; letter-spacing: -0.03em; color: var(--on-surface); }
+    .nav-tab { font-size: 14px; font-weight: 600; color: var(--on-surface-variant); padding: 8px 0; position: relative; cursor: pointer; }
+    .nav-tab.active { color: var(--primary-strong); }
+    .nav-tab.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -19px; height: 2px; border-radius: 999px; background: var(--primary-strong); box-shadow: 0 0 12px rgba(77, 142, 255, 0.5); }
+    .sidebar { grid-area: sidebar; background: linear-gradient(180deg, #0b1326 0%, #0a1020 100%); border-right: 1px solid rgba(140, 144, 159, 0.14); padding: 20px 16px 16px; display: flex; flex-direction: column; gap: 18px; min-height: 0; }
+    .sidebar-header { padding: 12px 12px 18px; border-bottom: 1px solid rgba(140, 144, 159, 0.12); }
+    .sidebar-kicker { font-size: 11px; font-weight: 800; color: var(--primary-strong); text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 6px; }
+    .sidebar-subtitle { font-size: 12px; color: var(--on-surface-variant); }
+    .side-nav { display: grid; gap: 6px; }
+    .side-link { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 14px; border-radius: var(--radius-lg); color: var(--on-surface-variant); background: transparent; border: 1px solid transparent; font-size: 14px; font-weight: 600; }
+    .side-link .left { display: flex; align-items: center; gap: 12px; }
+    .side-link.active { background: rgba(77, 142, 255, 0.10); color: var(--primary-strong); border-color: rgba(77, 142, 255, 0.28); box-shadow: inset 2px 0 0 var(--primary-strong); }
+    .side-link:hover:not(.active) { background: rgba(255,255,255,0.03); color: var(--on-surface); border-color: rgba(140, 144, 159, 0.12); }
+    .side-icon { width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.04); color: inherit; font-size: 12px; font-weight: 800; }
+    .sidebar-footer { margin-top: auto; display: grid; gap: 12px; padding-top: 12px; border-top: 1px solid rgba(140, 144, 159, 0.12); }
+    .mini-note { padding: 12px; border-radius: var(--radius-lg); background: rgba(255,255,255,0.03); border: 1px solid rgba(140, 144, 159, 0.12); color: var(--on-surface-variant); font-size: 12px; line-height: 1.5; }
+    .button-primary { border: none; border-radius: 10px; padding: 11px 14px; background: linear-gradient(180deg, #5f9cff 0%, #4d8eff 100%); color: #051529; font-size: 13px; font-weight: 800; letter-spacing: 0.02em; box-shadow: 0 10px 24px rgba(77, 142, 255, 0.25); cursor: pointer; }
+    .main { grid-area: main; min-width: 0; min-height: 0; overflow: auto; background: radial-gradient(circle at 35% 10%, rgba(77, 142, 255, 0.08), transparent 30%), radial-gradient(circle at 80% 0%, rgba(78, 222, 163, 0.06), transparent 24%), var(--surface-container-lowest); }
+    .canvas { max-width: 1580px; margin: 0 auto; padding: 24px 24px 32px; display: grid; gap: 16px; }
+    .hero-row { display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; }
+    .page-title { font-size: 46px; line-height: 1.05; font-weight: 800; letter-spacing: -0.03em; margin: 0 0 10px; }
+    .page-subtitle { max-width: 840px; margin: 0; color: var(--on-surface-variant); font-size: 16px; line-height: 1.6; }
+    .hero-meta { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+    .regime-badge, .chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
+    .regime-badge { background: rgba(78, 222, 163, 0.10); border: 1px solid rgba(78, 222, 163, 0.22); color: var(--secondary); }
+    .dot { width: 8px; height: 8px; border-radius: 999px; background: currentColor; box-shadow: 0 0 10px currentColor; }
+    .metrics-row, .grid-12 { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+    .metric-card, .panel, .sector-item, .cross-item { background: linear-gradient(180deg, rgba(34,42,61,0.92) 0%, rgba(23,31,51,0.96) 100%); border: 1px solid rgba(140, 144, 159, 0.14); border-radius: var(--radius-xl); box-shadow: var(--shadow); }
+    .metric-card { padding: 16px 18px; min-height: 98px; display: flex; flex-direction: column; justify-content: space-between; }
+    .metric-label, .panel-kicker, .micro-label, .table-head { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--on-surface-variant); }
+    .metric-value { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+    .metric-foot { color: var(--on-surface-variant); font-size: 12px; }
+    .green { color: var(--secondary); }
+    .red { color: var(--tertiary); }
+    .blue { color: var(--primary); }
+    .panel { padding: var(--panel-padding); position: relative; overflow: hidden; }
+    .panel-header { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 18px; position: relative; z-index: 2; }
+    .panel-title { margin: 0 0 6px; font-size: 23px; font-weight: 700; letter-spacing: -0.02em; }
+    .panel-subtitle { margin: 0; color: var(--on-surface-variant); font-size: 13px; line-height: 1.5; max-width: 700px; }
+    .hero-panel { grid-column: span 8; min-height: 470px; background: radial-gradient(circle at 50% 50%, rgba(77, 142, 255, 0.09), transparent 30%), radial-gradient(circle at 20% 10%, rgba(78, 222, 163, 0.05), transparent 24%), linear-gradient(180deg, rgba(23,31,51,0.98), rgba(19,27,46,0.98)); }
+    .hero-surface { position: relative; min-height: 380px; border-radius: 16px; background: linear-gradient(180deg, rgba(9,15,28,0.52), rgba(10,14,25,0.18)); border: 1px solid rgba(140, 144, 159, 0.08); overflow: hidden; }
+    .impact-map { position: relative; height: 100%; min-height: 380px; padding: 24px; }
+    .map-row { display: flex; justify-content: space-between; align-items: flex-start; padding-top: 12px; }
+    .origin-node { text-align: center; display: grid; gap: 10px; justify-items: center; }
+    .origin-circle { width: 72px; height: 72px; border-radius: 999px; display: grid; place-items: center; font-size: 14px; font-weight: 800; border: 2px solid; box-shadow: 0 0 24px; }
+    .origin-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.10em; color: var(--on-surface-variant); }
+    .map-svg { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+    .map-svg path { fill: none; stroke-width: 2.5; stroke-dasharray: 10 10; animation: flow 12s linear infinite; }
+    .map-svg text { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; fill: rgba(194,198,214,0.65); text-transform: uppercase; }
+    @keyframes flow { from { stroke-dashoffset: 220; } to { stroke-dashoffset: 0; } }
+    .transmission-center { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 280px; text-align: center; padding: 16px; border-radius: 18px; background: rgba(9,16,31,0.88); border: 1px solid rgba(77,142,255,0.26); box-shadow: 0 24px 50px rgba(0,0,0,0.35); backdrop-filter: blur(14px); z-index: 3; }
+    .trans-title { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: var(--primary-strong); margin-bottom: 6px; }
+    .trans-headline { font-size: 17px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 8px; }
+    .trans-body { font-size: 12px; color: var(--on-surface-variant); line-height: 1.55; }
+    .affected-row { display: flex; justify-content: space-between; gap: 10px; position: absolute; bottom: 18px; left: 24px; right: 24px; }
+    .affected-card { flex: 1 1 0; min-width: 0; padding: 12px 14px; border-radius: 14px; background: rgba(19,27,46,0.84); border: 1px solid rgba(140,144,159,0.12); backdrop-filter: blur(6px); z-index: 2; }
+    .affected-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .affected-name { font-size: 12px; font-weight: 700; }
+    .affected-strength { font-size: 11px; font-weight: 800; }
+    .affected-desc { font-size: 11px; color: var(--on-surface-variant); line-height: 1.4; }
+    .progress { width: 100%; height: 5px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,0.06); }
+    .progress span { display: block; height: 100%; border-radius: inherit; background: currentColor; }
+    .stack-panel { grid-column: span 4; display: grid; gap: 16px; }
+    .sector-list, .cross-list { display: grid; gap: 10px; }
+    .sector-item { display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center; padding: 12px 14px; }
+    .sector-name { font-size: 14px; font-weight: 700; }
+    .sector-meta { font-size: 12px; color: var(--on-surface-variant); margin-top: 3px; }
+    .sector-pct { font-size: 13px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .sector-bar { width: 64px; height: 5px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,0.06); }
+    .sector-bar-fill { height: 100%; border-radius: inherit; }
+    .lagged-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; background: rgba(173,198,255,0.10); color: var(--primary); border: 1px solid rgba(173,198,255,0.18); }
+    .cross-item { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 14px 16px; border-left: 3px solid currentColor; }
+    .cross-name { font-size: 14px; font-weight: 700; }
+    .cross-meta { font-size: 12px; color: var(--on-surface-variant); margin-top: 3px; line-height: 1.4; }
+    .cross-value { text-align: right; }
+    .cross-magnitude { font-size: 16px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .cross-latency { font-size: 11px; color: var(--on-surface-variant); margin-top: 3px; }
+    .full-panel { grid-column: 1 / -1; }
+    .matrix-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+    .matrix-cell { aspect-ratio: 1; border-radius: 12px; display: grid; place-items: center; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; border: 1px solid rgba(255,255,255,0.06); }
+    .tag { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; border: 1px solid transparent; }
+    .tag-green { background: rgba(78,222,163,0.10); color: var(--secondary); border-color: rgba(78,222,163,0.18); }
+    .tag-red { background: rgba(255,84,81,0.10); color: var(--tertiary); border-color: rgba(255,84,81,0.18); }
+    .tag-blue { background: rgba(173,198,255,0.10); color: var(--primary); border-color: rgba(173,198,255,0.18); }
+    .tag-yellow { background: rgba(255,200,77,0.10); color: #ffc84d; border-color: rgba(255,200,77,0.18); }
+    @media (max-width: 1320px) { .hero-panel { grid-column: span 12; } .stack-panel { grid-column: span 12; } }
+    @media (max-width: 1080px) { .app-shell { grid-template-columns: 1fr; grid-template-rows: 72px auto 1fr; grid-template-areas: "topbar" "sidebar" "main"; } .sidebar { min-height: auto; } .hero-row { flex-direction: column; align-items: flex-start; } .hero-meta { justify-content: flex-start; } .matrix-grid { grid-template-columns: repeat(3, 1fr); } }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-kicker">Terminal v1.0</div>
+        <div class="sidebar-subtitle">Institutional market intelligence</div>
+      </div>
+      <nav class="side-nav">
+        <div class="side-link">
+          <div class="left"><span class="side-icon">DS</span><span>Discovery</span></div>
+          <span>›</span>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">LF</span><span>Liquidity</span></div>
+        </div>
+        <div class="side-link active">
+          <div class="left"><span class="side-icon">IM</span><span>Impacts</span></div>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">HT</span><span>Hidden Trends</span></div>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">ID</span><span>Ideas</span></div>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">ST</span><span>Settings</span></div>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="mini-note">Design direction: dark command center, compact information density, restrained semantic color system, and high-trust institutional tone.</div>
+        <button class="button-primary">Refresh impacts</button>
+      </div>
+    </aside>
+
+    <header class="topbar">
+      <div class="brand-row">
+        <div class="brand">LIQUIDITY PULSE</div>
+        <div class="nav-tabs">
+          <div class="nav-tab">Discovery</div>
+          <div class="nav-tab">Flows</div>
+          <div class="nav-tab active">Transmission</div>
+          <div class="nav-tab">Recommendations</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <div class="status-group">
+          <div class="regime-badge"><span class="dot"></span>Liquidity Expanding</div>
+          <div class="chip" style="background:rgba(173,198,255,0.10); border:1px solid rgba(173,198,255,0.18); color:var(--primary);">Updated 19:46 CEST</div>
+        </div>
+        <div class="chip" style="background:rgba(255,255,255,0.04); border:1px solid rgba(140,144,159,0.18); color:var(--on-surface-variant);">Alerts 3</div>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="canvas">
+        <section class="hero-row">
+          <div>
+            <h1 class="page-title">Market Impacts</h1>
+            <p class="page-subtitle">Cross-asset transmission mapping — tracing how macro shocks propagate through correlation chains, sector rotations, and cross-asset dynamics over realistic time horizons.</p>
+          </div>
+          <div class="hero-meta">
+            <div class="chip" style="background:rgba(78,222,163,0.10); border:1px solid rgba(78,222,163,0.18); color:var(--secondary);">AI Power Theme</div>
+            <div class="chip" style="background:rgba(173,198,255,0.10); border:1px solid rgba(173,198,255,0.18); color:var(--primary);">4h View</div>
+          </div>
+        </section>
+
+        <section class="metrics-row">
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">Active Transmission Chains</div>
+            <div class="metric-value blue">14</div>
+            <div class="metric-foot">Cross-asset signals with confirmed propagation</div>
+          </div>
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">Avg Transmission Lag</div>
+            <div class="metric-value">2.8h</div>
+            <div class="metric-foot">From catalyst event to secondary confirmation</div>
+          </div>
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">Signal-to-Noise Ratio</div>
+            <div class="metric-value green">0.74</div>
+            <div class="metric-foot">Confirmed vs flagged signals in last 24h</div>
+          </div>
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">Hidden Opportunities</div>
+            <div class="metric-value green">6</div>
+            <div class="metric-foot">Second-order effects not yet priced in</div>
+          </div>
+        </section>
+
+        <section class="grid-12">
+          <article class="panel hero-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-kicker">Propagation map</div>
+                <h2 class="panel-title">Transmission Chain — AI Power Demand</h2>
+                <p class="panel-subtitle">How the dominant catalyst propagates: origin → first-order assets → second-order sectors → lagged beneficiaries.</p>
+              </div>
+              <div style="display:flex;gap:8px;align-items:center">
+                <span class="tag tag-blue">▲ 1st Order</span>
+                <span class="tag tag-yellow">◑ 2nd Order</span>
+                <span class="tag" style="background:rgba(255,200,77,0.06);color:#8c909f;border-color:rgba(140,144,159,0.18)">◔ Lagged</span>
+              </div>
+            </div>
+            <div class="hero-surface">
+              <div class="impact-map">
+                <div class="map-row">
+                  <div class="origin-node">
+                    <div class="origin-circle" style="background:rgba(255,84,81,0.14);border-color:rgba(255,84,81,0.30);color:var(--tertiary);box-shadow:0 0 24px rgba(255,84,81,0.14)">NVDA</div>
+                    <div class="origin-label">Hyperscaler capex</div>
+                  </div>
+                  <div class="origin-node">
+                    <div class="origin-circle" style="background:rgba(173,198,255,0.14);border-color:rgba(173,198,255,0.30);color:var(--primary);box-shadow:0 0 24px rgba(77,142,255,0.14)">SPX</div>
+                    <div class="origin-label">Equity breadth</div>
+                  </div>
+                  <div class="origin-node">
+                    <div class="origin-circle" style="background:rgba(255,84,81,0.14);border-color:rgba(255,84,81,0.30);color:var(--tertiary);box-shadow:0 0 24px rgba(255,84,81,0.14)">10Y</div>
+                    <div class="origin-label">Rates elevated</div>
+                  </div>
+                </div>
+
+                <svg class="map-svg" viewBox="0 0 1000 420" preserveAspectRatio="none" aria-hidden="true">
+                  <!-- Origin to first-order -->
+                  <path style="animation-duration:7s" d="M500 130 C 500 200, 500 200, 500 270" stroke="rgba(173,198,255,0.50)"></path>
+                  <text x="520" y="200">Power demand →</text>
+                  <path style="animation-duration:9s" d="M350 90 C 400 160, 420 200, 500 270" stroke="rgba(255,84,81,0.42)"></path>
+                  <text x="360" y="170">Equity rotation →</text>
+                  <path style="animation-duration:8s" d="M650 90 C 600 160, 580 200, 500 270" stroke="rgba(255,84,81,0.42)"></path>
+                  <text x="530" y="170">Rate pressure →</text>
+                  <!-- First to second-order -->
+                  <path style="animation-duration:10s" d="M500 320 C 350 360, 280 370, 200 380" stroke="rgba(255,200,77,0.40)"></path>
+                  <text x="220" y="355">Equipment →</text>
+                  <path style="animation-duration:8s" d="M500 320 C 500 360, 500 370, 500 380" stroke="rgba(255,200,77,0.40)"></path>
+                  <text x="510" y="355">Utilities →</text>
+                  <path style="animation-duration:11s" d="M500 320 C 640 360, 710 370, 800 380" stroke="rgba(255,200,77,0.40)"></path>
+                  <text x="640" y="355">→ Materials</text>
+                  <!-- Cross connections -->
+                  <path style="animation-duration:14s;opacity:0.5" d="M350 90 C 600 140, 600 200, 650 90" stroke="rgba(255,255,255,0.15)"></path>
+                </svg>
+
+                <div class="transmission-center">
+                  <div class="trans-title">Transmission Node</div>
+                  <div class="trans-headline">AI Infrastructure Capex</div>
+                  <div class="trans-body">Hyperscaler power procurement signals are now propagating into electrical equipment, grid infrastructure, and utility revenue models — with a 2–4 hour lag behind semis and cooling.</div>
+                  <div style="margin-top:10px;display:flex;gap:8px;justify-content:center">
+                    <span class="tag tag-yellow">2–4h lag</span>
+                    <span class="tag tag-green">High confidence</span>
+                  </div>
+                </div>
+
+                <div class="affected-row">
+                  <div class="affected-card" style="border-color:rgba(255,200,77,0.18)">
+                    <div class="affected-head">
+                      <div class="affected-name">Electrical Equip.</div>
+                      <span class="tag tag-blue">1st Order</span>
+                    </div>
+                    <div class="affected-desc">Transformers, switchgear, busway — directly tied to data centre power procurement</div>
+                    <div class="progress" style="margin-top:8px"><span style="width:82%;color:var(--primary)"></span></div>
+                    <div style="font-size:11px;color:var(--on-surface-variant);margin-top:5px">Lead time: 18–24 months</div>
+                  </div>
+                  <div class="affected-card" style="border-color:rgba(78,222,163,0.18)">
+                    <div class="affected-head">
+                      <div class="affected-name">Utility Revenue</div>
+                      <span class="tag tag-yellow">2nd Order</span>
+                    </div>
+                    <div class="affected-desc">Long-term power purchase agreements being renegotiated; demand charges rising</div>
+                    <div class="progress" style="margin-top:8px"><span style="width:61%;color:var(--secondary)"></span></div>
+                    <div style="font-size:11px;color:var(--on-surface-variant);margin-top:5px">Lead time: 6–12 months</div>
+                  </div>
+                  <div class="affected-card" style="border-color:rgba(255,200,77,0.14)">
+                    <div class="affected-head">
+                      <div class="affected-name">Grid Hardware</div>
+                      <span class="tag tag-yellow">Lagged</span>
+                    </div>
+                    <div class="affected-desc">Transmission interconnection queue growing; permitting timelines extending</div>
+                    <div class="progress" style="margin-top:8px"><span style="width:44%;color:#ffc84d"></span></div>
+                    <div style="font-size:11px;color:var(--on-surface-variant);margin-top:5px">Lead time: 3–5 years</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <div class="stack-panel">
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-kicker">Sector sensitivity</div>
+                  <h2 class="panel-title">Rate Sensitivity</h2>
+                </div>
+                <span class="tag tag-blue">Macro factor</span>
+              </div>
+              <div class="sector-list">
+                <div class="sector-item">
+                  <div><div class="sector-name">Duration Growth</div><div class="sector-meta">Long-duration tech, SaaS, biotech</div></div>
+                  <div class="sector-pct red">-2.4%</div>
+                  <div class="sector-bar"><div class="sector-bar-fill" style="width:78%;background:var(--tertiary)"></div></div>
+                </div>
+                <div class="sector-item">
+                  <div><div class="sector-name">Utilities</div><div class="sector-meta">Regulated + AI power demand mix</div></div>
+                  <div class="sector-pct green">+1.8%</div>
+                  <div class="sector-bar"><div class="sector-bar-fill" style="width:55%;background:var(--secondary)"></div></div>
+                </div>
+                <div class="sector-item">
+                  <div><div class="sector-name">Regional Banks</div><div class="sector-meta">Net interest margin compression</div></div>
+                  <div class="sector-pct red">-1.1%</div>
+                  <div class="sector-bar"><div class="sector-bar-fill" style="width:42%;background:var(--tertiary)"></div></div>
+                </div>
+                <div class="sector-item">
+                  <div><div class="sector-name">Industrials</div><div class="sector-meta">Capex cycle, reindustrialisation</div></div>
+                  <div class="sector-pct green">+0.9%</div>
+                  <div class="sector-bar"><div class="sector-bar-fill" style="width:38%;background:var(--secondary)"></div></div>
+                </div>
+                <div class="sector-item">
+                  <div><div class="sector-name">REITs</div><div class="sector-meta">Data centre specific > broad office</div></div>
+                  <div class="sector-pct blue">+0.4%</div>
+                  <div class="sector-bar"><div class="sector-bar-fill" style="width:24%;background:var(--primary)"></div></div>
+                </div>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-kicker">Confirmed chain reactions</div>
+                  <h2 class="panel-title">Recent Transmission Events</h2>
+                </div>
+              </div>
+              <div style="display:grid;gap:10px">
+                <div class="cross-item" style="color:var(--secondary);border-color:rgba(78,222,163,0.40)">
+                  <div><div class="cross-name">NVDA earnings → transformer stocks</div><div class="cross-meta">2.1h lag · ACB, WSO confirmed higher highs after NVDA</div></div>
+                  <div class="cross-value"><div class="cross-magnitude green">+8.4%</div><div class="cross-latency">Confirmed</div></div>
+                </div>
+                <div class="cross-item" style="color:var(--secondary);border-color:rgba(78,222,163,0.40)">
+                  <div><div class="cross-name">Bill yield rise → regional bank selloff</div><div class="cross-meta">4.8h lag · KRE breakdown below 200dma</div></div>
+                  <div class="cross-value"><div class="cross-magnitude red">-6.2%</div><div class="cross-latency">Confirmed</div></div>
+                </div>
+                <div class="cross-item" style="color:var(--primary);border-color:rgba(173,198,255,0.40)">
+                  <div><div class="cross-name">BTC break → ETH momentum</div><div class="cross-meta">0.8h lag · ETH perp funding turned positive within the hour</div></div>
+                  <div class="cross-value"><div class="cross-magnitude blue">+3.1%</div><div class="cross-latency">Confirmed</div></div>
+                </div>
+                <div class="cross-item" style="color:#8c909f;border-color:rgba(140,144,159,0.30)">
+                  <div><div class="cross-name">Oil spike → defence / industrials</div><div class="cross-meta">6.4h lag · XLI confirmed; thesis not yet confirmed</div></div>
+                  <div class="cross-value"><div class="cross-magnitude" style="color:#8c909f">Pending</div><div class="cross-latency">Watching</div></div>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <article class="panel" style="grid-column:span 12">
+            <div class="panel-header">
+              <div>
+                <div class="panel-kicker">Sector cross-correlation matrix</div>
+                <h2 class="panel-title">Correlation Transmission Matrix</h2>
+                <p class="panel-subtitle">Cross-asset correlation heatmap — colour = correlation direction and strength. This is not a price table, it is a propagation probability map.</p>
+              </div>
+            </div>
+            <div style="overflow-x:auto">
+              <div class="matrix-grid" style="min-width:700px">
+                <div class="matrix-cell" style="background:rgba(78,222,163,0.22);color:#d9fff0">XLE</div>
+                <div class="matrix-cell" style="background:rgba(78,222,163,0.14);color:#a6ffd6">XLK</div>
+                <div class="matrix-cell" style="background:rgba(255,84,81,0.14);color:#ffd1cd">XLV</div>
+                <div class="matrix-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">XLF</div>
+                <div class="matrix-cell" style="background:rgba(255,84,81,0.22);color:#ffe4e1">XLRE</div>
+                <div class="matrix-cell" style="background:rgba(255,200,77,0.10);color:#8c909f">DXY</div>
+
+                <div class="matrix-cell" style="background:rgba(255,200,77,0.06);color:#8c909f">XLE</div>
+                <div class="matrix-cell" style="background:rgba(78,222,163,0.22);color:#d9fff0">XLK</div>
+                <div class="matrix-cell" style="background:rgba(255,200,77,0.06);color:#8c909f">XLV</div>
+                <div class="matrix-cell" style="background:rgba(255,84,81,0.10);color:#ffd1cd">XLF</div>
+                <div class="matrix-cell" style="background:rgba(255,200,77,0.06);color:#8c909f">XLRE</div>
+                <div class="matrix-cell" style="background:rgba(173,198,255,0.14);color:#dce7ff">DXY</div>
+
+                <div class="matrix-cell" style="background:rgba(78,222,163,0.10);color:#a6ffd6">XLE</div>
+                <div class="matrix-cell" style="background:rgba(255,200,77,0.06);color:#8c909f">XLK</div>
+                <div class="matrix-cell" style="background:rgba(78,222,163,0.18);color:#d9fff0">XLV</div>
+                <div class="matrix-cell" style="background:rgba(255,84,81,0.08);color:#ffd1cd">XLF</div>
+                <div class="matrix-cell" style="background:rgba(255,200,77,0.06);color:#8c909f">XLRE</div>
+                <div class="matrix-cell" style="background:rgba(255,84,81,0.12);color:#ffd1cd">DXY</div>
+
+                <div class="matrix-cell" style="background:rgba(255,200,77,0.08);color:#8c909f">XLE</div>
+                <div class="matrix-cell" style="background:rgba(255,84,81,0.10);color:#ffd1cd">XLK</div>
+                <div class="matrix-cell" style="background:rgba(255,200,77,0.06);color:#8c909f">XLV</div>
+                <div class="matrix-cell" style="background:rgba(78,222,163,0.20);color:#d9fff0">XLF</div>
+                <div class="matrix-cell" style="background:rgba(255,200,77,0.06);color:#8c909f">XLRE</div>
+                <div class="matrix-cell" style="background:rgba(255,84,81,0.14);color:#ffe4e1">DXY</div>
+
+                <div class="matrix-cell" style="background:rgba(255,200,77,0.06);color:#8c909f">XLE</div>
+                <div class="matrix-cell" style="background:rgba(255,200,77,0.06);color:#8c909f">XLK</div>
+                <div class="matrix-cell" style="background:rgba(255,200,77,0.06);color:#8c909f">XLV</div>
+                <div class="matrix-cell" style="background:rgba(255,200,77,0.06);color:#8c909f">XLF</div>
+                <div class="matrix-cell" style="background:rgba(78,222,163,0.16);color:#d9fff0">XLRE</div>
+                <div class="matrix-cell" style="background:rgba(255,200,77,0.06);color:#8c909f">DXY</div>
+
+                <div class="matrix-cell" style="background:rgba(255,200,77,0.06);color:#8c909f">XLE</div>
+                <div class="matrix-cell" style="background:rgba(173,198,255,0.12);color:#dce7ff">XLK</div>
+                <div class="matrix-cell" style="background:rgba(255,84,81,0.12);color:#ffd1cd">XLV</div>
+                <div class="matrix-cell" style="background:rgba(255,84,81,0.18);color:#ffe4e1">XLF</div>
+                <div class="matrix-cell" style="background:rgba(255,200,77,0.06);color:#8c909f">XLRE</div>
+                <div class="matrix-cell" style="background:rgba(78,222,163,0.14);color:#a6ffd6">DXY</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:24px;margin-top:14px">
+              <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--on-surface-variant)">
+                <div style="width:12px;height:12px;border-radius:3px;background:rgba(78,222,163,0.22)"></div>Strong positive
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--on-surface-variant)">
+                <div style="width:12px;height:12px;border-radius:3px;background:rgba(173,198,255,0.14)"></div>Moderate
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--on-surface-variant)">
+                <div style="width:12px;height:12px;border-radius:3px;background:rgba(255,200,77,0.10)"></div>Weak / no signal
+              </div>
+              <div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--on-surface-variant)">
+                <div style="width:12px;height:12px;border-radius:3px;background:rgba(255,84,81,0.22)"></div>Negative
+              </div>
+            </div>
+          </article>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

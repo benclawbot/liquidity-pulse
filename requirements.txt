@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+httpx
+requests
+yfinance
+ccxt
+pytest
+pytest-asyncio

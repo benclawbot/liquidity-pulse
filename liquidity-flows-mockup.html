@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Liquidity Pulse — Liquidity Flows</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --surface: #0b1326;
+      --surface-dim: #0b1326;
+      --surface-bright: #31394d;
+      --surface-container-lowest: #060e20;
+      --surface-container-low: #131b2e;
+      --surface-container: #171f33;
+      --surface-container-high: #222a3d;
+      --surface-container-highest: #2d3449;
+      --on-surface: #dae2fd;
+      --on-surface-variant: #c2c6d6;
+      --outline: #8c909f;
+      --outline-variant: #424754;
+      --primary: #adc6ff;
+      --primary-strong: #4d8eff;
+      --on-primary: #002e6a;
+      --secondary: #4edea3;
+      --secondary-strong: #00a572;
+      --tertiary: #ffb3ad;
+      --tertiary-strong: #ff5451;
+      --error: #ffb4ab;
+      --shadow: 0 18px 45px rgba(0, 0, 0, 0.28);
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      --radius-xl: 18px;
+      --gutter: 16px;
+      --panel-padding: 20px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { margin: 0; font-family: 'Inter', system-ui, sans-serif; background: linear-gradient(180deg, #091121 0%, #060c18 100%); color: var(--on-surface); overflow: hidden; }
+    .app-shell { height: 100vh; display: grid; grid-template-columns: 256px 1fr; grid-template-rows: 72px 1fr; grid-template-areas: "sidebar topbar" "sidebar main"; }
+    .topbar { grid-area: topbar; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; background: rgba(9, 16, 31, 0.84); border-bottom: 1px solid rgba(140, 144, 159, 0.18); backdrop-filter: blur(16px); position: relative; z-index: 10; }
+    .brand-row, .topbar-actions, .nav-tabs, .status-group { display: flex; align-items: center; gap: 18px; }
+    .brand { font-size: 18px; font-weight: 800; letter-spacing: -0.03em; color: var(--on-surface); }
+    .nav-tab { font-size: 14px; font-weight: 600; color: var(--on-surface-variant); padding: 8px 0; position: relative; cursor: pointer; }
+    .nav-tab.active { color: var(--primary-strong); }
+    .nav-tab.active::after { content: ""; position: absolute; left: 0; right: 0; bottom: -19px; height: 2px; border-radius: 999px; background: var(--primary-strong); box-shadow: 0 0 12px rgba(77, 142, 255, 0.5); }
+    .sidebar { grid-area: sidebar; background: linear-gradient(180deg, #0b1326 0%, #0a1020 100%); border-right: 1px solid rgba(140, 144, 159, 0.14); padding: 20px 16px 16px; display: flex; flex-direction: column; gap: 18px; min-height: 0; }
+    .sidebar-header { padding: 12px 12px 18px; border-bottom: 1px solid rgba(140, 144, 159, 0.12); }
+    .sidebar-kicker { font-size: 11px; font-weight: 800; color: var(--primary-strong); text-transform: uppercase; letter-spacing: 0.14em; margin-bottom: 6px; }
+    .sidebar-subtitle { font-size: 12px; color: var(--on-surface-variant); }
+    .side-nav { display: grid; gap: 6px; }
+    .side-link { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 14px; border-radius: var(--radius-lg); color: var(--on-surface-variant); background: transparent; border: 1px solid transparent; font-size: 14px; font-weight: 600; }
+    .side-link .left { display: flex; align-items: center; gap: 12px; }
+    .side-link.active { background: rgba(77, 142, 255, 0.10); color: var(--primary-strong); border-color: rgba(77, 142, 255, 0.28); box-shadow: inset 2px 0 0 var(--primary-strong); }
+    .side-link:hover:not(.active) { background: rgba(255,255,255,0.03); color: var(--on-surface); border-color: rgba(140, 144, 159, 0.12); }
+    .side-icon { width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.04); color: inherit; font-size: 12px; font-weight: 800; }
+    .sidebar-footer { margin-top: auto; display: grid; gap: 12px; padding-top: 12px; border-top: 1px solid rgba(140, 144, 159, 0.12); }
+    .mini-note { padding: 12px; border-radius: var(--radius-lg); background: rgba(255,255,255,0.03); border: 1px solid rgba(140, 144, 159, 0.12); color: var(--on-surface-variant); font-size: 12px; line-height: 1.5; }
+    .button-primary { border: none; border-radius: 10px; padding: 11px 14px; background: linear-gradient(180deg, #5f9cff 0%, #4d8eff 100%); color: #051529; font-size: 13px; font-weight: 800; letter-spacing: 0.02em; box-shadow: 0 10px 24px rgba(77, 142, 255, 0.25); cursor: pointer; }
+    .main { grid-area: main; min-width: 0; min-height: 0; overflow: auto; background: radial-gradient(circle at 35% 10%, rgba(77, 142, 255, 0.08), transparent 30%), radial-gradient(circle at 80% 0%, rgba(78, 222, 163, 0.06), transparent 24%), var(--surface-container-lowest); }
+    .canvas { max-width: 1580px; margin: 0 auto; padding: 24px 24px 32px; display: grid; gap: 16px; }
+    .hero-row { display: flex; justify-content: space-between; gap: 24px; align-items: flex-end; }
+    .page-title { font-size: 46px; line-height: 1.05; font-weight: 800; letter-spacing: -0.03em; margin: 0 0 10px; }
+    .page-subtitle { max-width: 840px; margin: 0; color: var(--on-surface-variant); font-size: 16px; line-height: 1.6; }
+    .hero-meta { display: flex; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+    .regime-badge, .chip { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; letter-spacing: 0.03em; text-transform: uppercase; }
+    .regime-badge { background: rgba(78, 222, 163, 0.10); border: 1px solid rgba(78, 222, 163, 0.22); color: var(--secondary); }
+    .dot { width: 8px; height: 8px; border-radius: 999px; background: currentColor; box-shadow: 0 0 10px currentColor; }
+    .metrics-row, .grid-12 { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 16px; }
+    .metric-card, .panel, .pool-row, .feed-item { background: linear-gradient(180deg, rgba(34,42,61,0.92) 0%, rgba(23,31,51,0.96) 100%); border: 1px solid rgba(140, 144, 159, 0.14); border-radius: var(--radius-xl); box-shadow: var(--shadow); }
+    .metric-card { padding: 16px 18px; min-height: 98px; display: flex; flex-direction: column; justify-content: space-between; }
+    .metric-label, .panel-kicker, .micro-label, .table-head { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--on-surface-variant); }
+    .metric-value { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+    .metric-foot { color: var(--on-surface-variant); font-size: 12px; }
+    .green { color: var(--secondary); }
+    .red { color: var(--tertiary); }
+    .blue { color: var(--primary); }
+    .panel { padding: var(--panel-padding); position: relative; overflow: hidden; }
+    .panel-header { display: flex; justify-content: space-between; gap: 18px; align-items: flex-start; margin-bottom: 18px; position: relative; z-index: 2; }
+    .panel-title { margin: 0 0 6px; font-size: 23px; font-weight: 700; letter-spacing: -0.02em; }
+    .panel-subtitle { margin: 0; color: var(--on-surface-variant); font-size: 13px; line-height: 1.5; max-width: 700px; }
+    .hero-panel { grid-column: span 8; min-height: 470px; background: radial-gradient(circle at 50% 50%, rgba(77, 142, 255, 0.09), transparent 30%), radial-gradient(circle at 20% 10%, rgba(78, 222, 163, 0.05), transparent 24%), linear-gradient(180deg, rgba(23,31,51,0.98), rgba(19,27,46,0.98)); }
+    .hero-surface { position: relative; min-height: 380px; border-radius: 16px; background: linear-gradient(180deg, rgba(9,15,28,0.52), rgba(10,14,25,0.18)); border: 1px solid rgba(140, 144, 159, 0.08); overflow: hidden; }
+    .depth-chart-area { height: 100%; min-height: 380px; padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+    .depth-header { display: flex; justify-content: space-between; align-items: center; }
+    .depth-pair { font-size: 15px; font-weight: 800; letter-spacing: -0.02em; }
+    .depth-price { font-size: 28px; font-weight: 800; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; color: var(--on-surface); }
+    .depth-spread { font-size: 12px; color: var(--on-surface-variant); margin-top: 4px; }
+    .depth-canvas-wrap { flex: 1; position: relative; border-radius: 12px; overflow: hidden; background: rgba(9,15,28,0.4); border: 1px solid rgba(140,144,159,0.08); }
+    .depth-canvas { width: 100%; height: 100%; }
+    .depth-legend { display: flex; gap: 24px; }
+    .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 999px; }
+    .stack-panel { grid-column: span 4; display: grid; gap: 16px; }
+    .pool-list { display: grid; gap: 12px; }
+    .pool-row { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: center; padding: 14px 16px; }
+    .pool-name { font-size: 14px; font-weight: 700; }
+    .pool-meta { color: var(--on-surface-variant); font-size: 12px; margin-top: 3px; }
+    .pool-pct { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .pool-bar { width: 72px; height: 6px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,0.06); }
+    .pool-bar-fill { height: 100%; border-radius: inherit; }
+    .split-panel { grid-column: span 6; }
+    .split-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .split-col-title { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 12px; }
+    .funding-list { display: grid; gap: 10px; }
+    .funding-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; background: rgba(11,19,38,0.60); border-radius: 12px; border-left: 2px solid currentColor; }
+    .funding-name { font-size: 14px; font-weight: 700; }
+    .funding-note { font-size: 12px; color: var(--on-surface-variant); margin-top: 3px; }
+    .funding-rate { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .cross-flow-item { display: grid; grid-template-columns: 44px 1fr auto; gap: 12px; align-items: center; padding: 12px 14px; background: rgba(11,19,38,0.62); border-radius: 12px; border: 1px solid rgba(140,144,159,0.10); }
+    .flow-badge { width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-size: 11px; font-weight: 800; border: 1px solid; }
+    .flow-badge.in { background: rgba(78,222,163,0.14); color: var(--secondary); border-color: rgba(78,222,163,0.18); }
+    .flow-badge.out { background: rgba(255,84,81,0.14); color: var(--tertiary); border-color: rgba(255,84,81,0.18); }
+    .flow-badge.neutral { background: rgba(173,198,255,0.14); color: var(--primary); border-color: rgba(173,198,255,0.18); }
+    .flow-pair { font-size: 14px; font-weight: 700; }
+    .flow-vol { font-size: 12px; color: var(--on-surface-variant); margin-top: 3px; }
+    .flow-arrow { font-size: 18px; }
+    .flow-amount { font-size: 14px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .full-panel { grid-column: 1 / -1; }
+    .chain-table { width: 100%; border-collapse: collapse; }
+    .chain-table th { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--on-surface-variant); text-align: left; padding: 0 12px 10px; border-bottom: 1px solid rgba(140,144,159,0.12); }
+    .chain-table td { padding: 14px 12px; font-size: 14px; border-bottom: 1px solid rgba(140,144,159,0.07); font-variant-numeric: tabular-nums; }
+    .chain-table tr:hover td { background: rgba(255,255,255,0.02); }
+    .chain-name { font-weight: 700; }
+    .chain-meta { font-size: 12px; color: var(--on-surface-variant); margin-top: 3px; }
+    .pulse-dot { display: inline-block; width: 8px; height: 8px; border-radius: 999px; background: currentColor; box-shadow: 0 0 8px currentColor; }
+    .tag { display: inline-flex; align-items: center; gap: 5px; padding: 5px 9px; border-radius: 999px; font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; border: 1px solid transparent; }
+    .tag-green { background: rgba(78,222,163,0.10); color: var(--secondary); border-color: rgba(78,222,163,0.18); }
+    .tag-red { background: rgba(255,84,81,0.10); color: var(--tertiary); border-color: rgba(255,84,81,0.18); }
+    .tag-blue { background: rgba(173,198,255,0.10); color: var(--primary); border-color: rgba(173,198,255,0.18); }
+    .progress { width: 100%; height: 6px; border-radius: 999px; overflow: hidden; background: rgba(255,255,255,0.06); }
+    .progress span { display: block; height: 100%; border-radius: inherit; background: currentColor; }
+    .sparkline { width: 84px; height: 24px; }
+    .sparkline path { fill: none; stroke-width: 2.25; stroke-linecap: round; stroke-linejoin: round; }
+    .risk-indicator { display: flex; gap: 4px; align-items: center; }
+    .risk-bar { width: 4px; height: 14px; border-radius: 2px; background: rgba(255,255,255,0.15); }
+    .risk-bar.active { background: currentColor; }
+    @media (max-width: 1320px) { .recommendations-grid { grid-template-columns: 1fr; } .hero-panel { grid-column: span 12; } .stack-panel, .split-panel { grid-column: span 12; } }
+    @media (max-width: 1080px) { .app-shell { grid-template-columns: 1fr; grid-template-rows: 72px auto 1fr; grid-template-areas: "topbar" "sidebar" "main"; } .sidebar { min-height: auto; } .hero-row { flex-direction: column; align-items: flex-start; } .hero-meta { justify-content: flex-start; } }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-kicker">Terminal v1.0</div>
+        <div class="sidebar-subtitle">Institutional market intelligence</div>
+      </div>
+      <nav class="side-nav">
+        <div class="side-link">
+          <div class="left"><span class="side-icon">DS</span><span>Discovery</span></div>
+          <span>›</span>
+        </div>
+        <div class="side-link active">
+          <div class="left"><span class="side-icon">LF</span><span>Liquidity</span></div>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">IM</span><span>Impacts</span></div>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">HT</span><span>Hidden Trends</span></div>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">ID</span><span>Ideas</span></div>
+        </div>
+        <div class="side-link">
+          <div class="left"><span class="side-icon">ST</span><span>Settings</span></div>
+        </div>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="mini-note">Design direction: dark command center, compact information density, restrained semantic color system, and high-trust institutional tone.</div>
+        <button class="button-primary">Refresh flows</button>
+      </div>
+    </aside>
+
+    <header class="topbar">
+      <div class="brand-row">
+        <div class="brand">LIQUIDITY PULSE</div>
+        <div class="nav-tabs">
+          <div class="nav-tab">Discovery</div>
+          <div class="nav-tab active">Flows</div>
+          <div class="nav-tab">Transmission</div>
+          <div class="nav-tab">Recommendations</div>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <div class="status-group">
+          <div class="regime-badge"><span class="dot"></span>Liquidity Expanding</div>
+          <div class="chip" style="background:rgba(173,198,255,0.10); border:1px solid rgba(173,198,255,0.18); color:var(--primary);">Updated 19:46 CEST</div>
+        </div>
+        <div class="chip" style="background:rgba(255,255,255,0.04); border:1px solid rgba(140,144,159,0.18); color:var(--on-surface-variant);">Alerts 3</div>
+      </div>
+    </header>
+
+    <main class="main">
+      <div class="canvas">
+        <section class="hero-row">
+          <div>
+            <h1 class="page-title">Liquidity Flows</h1>
+            <p class="page-subtitle">Cross-exchange order book depth, funding rate differentials, and on-chain capital rotation — real-time composability metrics for institutional market participants.</p>
+          </div>
+          <div class="hero-meta">
+            <div class="chip" style="background:rgba(78,222,163,0.10); border:1px solid rgba(78,222,163,0.18); color:var(--secondary);">Risk-On Rotation</div>
+            <div class="chip" style="background:rgba(173,198,255,0.10); border:1px solid rgba(173,198,255,0.18); color:var(--primary);">Live Depth</div>
+          </div>
+        </section>
+
+        <section class="metrics-row">
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">Total Liquidity Depth</div>
+            <div class="metric-value green">$4.28B</div>
+            <div class="metric-foot">Top 8 asset pairs, combined book depth</div>
+          </div>
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">Cross-Exchange Flow</div>
+            <div class="metric-value blue">$842M</div>
+            <div class="metric-foot">24h net capital rotation across venues</div>
+          </div>
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">Avg Funding Rate</div>
+            <div class="metric-value">0.0042%</div>
+            <div class="metric-foot">Perpetual futures basis vs spot</div>
+          </div>
+          <div class="metric-card" style="grid-column: span 3;">
+            <div class="metric-label">On-Chain Settlement</div>
+            <div class="metric-value green">+18.4K ETH</div>
+            <div class="metric-foot">Net daily bridge outflow, L2 settlement</div>
+          </div>
+        </section>
+
+        <section class="grid-12">
+          <article class="panel hero-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-kicker">Live order book</div>
+                <h2 class="panel-title">Composite Depth Chart</h2>
+                <p class="panel-subtitle">Aggregated bid-ask depth across major venues — normalised to 60-point rolling window. Green = bid side accumulation, Red = ask side distribution.</p>
+              </div>
+              <div class="depth-legend">
+                <div class="legend-item"><div class="legend-dot" style="background:var(--secondary)"></div>Bids</div>
+                <div class="legend-item"><div class="legend-dot" style="background:var(--tertiary)"></div>Asks</div>
+              </div>
+            </div>
+            <div class="hero-surface">
+              <div class="depth-chart-area">
+                <div class="depth-header">
+                  <div>
+                    <div class="depth-pair">BTC/USDT · Binance + Bybit + OKX</div>
+                    <div class="depth-price">$104,842 <span style="font-size:16px;color:var(--secondary)">▲</span></div>
+                    <div class="depth-spread">Spread: 0.01% · 24h depth: $1.14B</div>
+                  </div>
+                  <div style="text-align:right">
+                    <div style="font-size:12px;color:var(--on-surface-variant);text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:6px">Book Imbalance</div>
+                    <div style="font-size:24px;font-weight:800;color:var(--secondary)">+68%</div>
+                    <div style="font-size:12px;color:var(--on-surface-variant);margin-top:4px">Bid side dominant</div>
+                  </div>
+                </div>
+                <div class="depth-canvas-wrap">
+                  <svg class="depth-canvas" viewBox="0 0 1000 320" preserveAspectRatio="none">
+                    <!-- Bid side (green) — stepped depth curve -->
+                    <path d="M0 320 L0 280 L80 270 L160 255 L240 230 L320 195 L400 155 L480 115 L500 95 L520 115 L560 155 L640 195 L720 230 L800 255 L880 270 L960 280 L1000 290 L1000 320 Z" fill="rgba(78,222,163,0.12)" stroke="rgba(78,222,163,0.4)" stroke-width="2"/>
+                    <!-- Ask side (red) — stepped depth curve -->
+                    <path d="M0 320 L0 300 L40 295 L120 285 L200 270 L280 248 L360 220 L440 185 L500 155 L500 155 L560 185 L640 220 L720 248 L800 270 L880 285 L960 295 L1000 300 L1000 320 Z" fill="rgba(255,84,81,0.10)" stroke="rgba(255,84,81,0.35)" stroke-width="2"/>
+                    <!-- Mid price line -->
+                    <line x1="500" y1="0" x2="500" y2="320" stroke="rgba(173,198,255,0.35)" stroke-width="1" stroke-dasharray="6 6"/>
+                    <!-- Centre label -->
+                    <text x="500" y="20" text-anchor="middle" fill="rgba(173,198,255,0.7)" font-size="12" font-weight="700" letter-spacing="0.1em">MID PRICE</text>
+                  </svg>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <div class="stack-panel">
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-kicker">Perpetual basis</div>
+                  <h2 class="panel-title">Funding Rates</h2>
+                </div>
+              </div>
+              <div class="funding-list">
+                <div class="funding-row" style="color:var(--secondary)">
+                  <div><div class="funding-name">BTC Perp</div><div class="funding-note">Binance · OKX · Bybit avg</div></div>
+                  <div class="funding-rate">+0.0082%</div>
+                </div>
+                <div class="funding-row" style="color:var(--secondary)">
+                  <div><div class="funding-name">ETH Perp</div><div class="funding-note">Binance · Bybit avg</div></div>
+                  <div class="funding-rate">+0.0061%</div>
+                </div>
+                <div class="funding-row" style="color:var(--on-surface)">
+                  <div><div class="funding-name">SOL Perp</div><div class="funding-note">Binance · Hyperliquid</div></div>
+                  <div class="funding-rate">+0.0034%</div>
+                </div>
+                <div class="funding-row" style="color:var(--primary)">
+                  <div><div class="funding-name">AVAX Perp</div><div class="funding-note">Binance only</div></div>
+                  <div class="funding-rate">+0.0012%</div>
+                </div>
+                <div class="funding-row" style="color:var(--tertiary)">
+                  <div><div class="funding-name">LINK Perp</div><div class="funding-note">Binance · Bybit</div></div>
+                  <div class="funding-rate">-0.0018%</div>
+                </div>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-header">
+                <div>
+                  <div class="panel-kicker">Pool allocation</div>
+                  <h2 class="panel-title">TVL by Chain</h2>
+                </div>
+              </div>
+              <div class="pool-list">
+                <div class="pool-row">
+                  <div><div class="pool-name">Ethereum</div><div class="pool-meta">$48.2B TVL · 58.4%</div></div>
+                  <div class="pool-pct green">58.4%</div>
+                  <div class="pool-bar"><div class="pool-bar-fill" style="width:58%;background:var(--secondary)"></div></div>
+                </div>
+                <div class="pool-row">
+                  <div><div class="pool-name">Solana</div><div class="pool-meta">$14.1B TVL · 17.1%</div></div>
+                  <div class="pool-pct blue">17.1%</div>
+                  <div class="pool-bar"><div class="pool-bar-fill" style="width:17%;background:var(--primary)"></div></div>
+                </div>
+                <div class="pool-row">
+                  <div><div class="pool-name">Arbitrum</div><div class="pool-meta">$7.8B TVL · 9.5%</div></div>
+                  <div class="pool-pct blue">9.5%</div>
+                  <div class="pool-bar"><div class="pool-bar-fill" style="width:9%;background:var(--primary)"></div></div>
+                </div>
+                <div class="pool-row">
+                  <div><div class="pool-name">Base</div><div class="pool-meta">$4.2B TVL · 5.1%</div></div>
+                  <div class="pool-pct green">5.1%</div>
+                  <div class="pool-bar"><div class="pool-bar-fill" style="width:5%;background:var(--secondary)"></div></div>
+                </div>
+                <div class="pool-row">
+                  <div><div class="pool-name">Blast</div><div class="pool-meta">$2.9B TVL · 3.5%</div></div>
+                  <div class="pool-pct green">3.5%</div>
+                  <div class="pool-bar"><div class="pool-bar-fill" style="width:4%;background:var(--secondary)"></div></div>
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <article class="panel split-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-kicker">Venue-level</div>
+                <h2 class="panel-title">Cross-Exchange Flows</h2>
+                <p class="panel-subtitle">Net capital movement between exchanges over the last 24 hours. Positive = inflow to venue.</p>
+              </div>
+            </div>
+            <div class="split-grid">
+              <div>
+                <div class="split-col-title green"><span class="pulse-dot"></span> Inflows</div>
+                <div style="display:grid;gap:10px">
+                  <div class="cross-flow-item">
+                    <div class="flow-badge in">BN</div>
+                    <div><div class="flow-pair">Binance</div><div class="flow-vol">+$412M net · 14,820 BTC equiv.</div></div>
+                    <div class="flow-amount green">+$412M</div>
+                  </div>
+                  <div class="cross-flow-item">
+                    <div class="flow-badge in">CB</div>
+                    <div><div class="flow-pair">Coinbase</div><div class="flow-vol">+$188M net · 1,820 BTC equiv.</div></div>
+                    <div class="flow-amount green">+$188M</div>
+                  </div>
+                  <div class="cross-flow-item">
+                    <div class="flow-badge in">BL</div>
+                    <div><div class="flow-pair">Blast L2</div><div class="flow-vol">+$94M net · 820 ETH equiv.</div></div>
+                    <div class="flow-amount green">+$94M</div>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <div class="split-col-title red"><span class="pulse-dot"></span> Outflows</div>
+                <div style="display:grid;gap:10px">
+                  <div class="cross-flow-item">
+                    <div class="flow-badge out">OK</div>
+                    <div><div class="flow-pair">OKX</div><div class="flow-vol">-$241M net · 2,290 BTC equiv.</div></div>
+                    <div class="flow-amount red">-$241M</div>
+                  </div>
+                  <div class="cross-flow-item">
+                    <div class="flow-badge out">HB</div>
+                    <div><div class="flow-pair">Hyperliquid</div><div class="flow-vol">-$108M net · 1,040 BTC equiv.</div></div>
+                    <div class="flow-amount red">-$108M</div>
+                  </div>
+                  <div class="cross-flow-item">
+                    <div class="flow-badge out">BY</div>
+                    <div><div class="flow-pair">Bybit</div><div class="flow-vol">-$74M net · 710 BTC equiv.</div></div>
+                    <div class="flow-amount red">-$74M</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel split-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-kicker">Chain destination</div>
+                <h2 class="panel-title">On-Chain Bridge Flows</h2>
+                <p class="panel-subtitle">Net ETH equivalent flowing from L1 to L2s and between L2s — a leading indicator for DeFi activity and composability.</p>
+              </div>
+            </div>
+            <div style="display:grid;gap:10px">
+              <div class="cross-flow-item">
+                <div class="flow-badge in">AR</div>
+                <div><div class="flow-pair">Arbitrum</div><div class="flow-vol">+8,240 ETH · 24h net inflow · avgGas: 2.1 gwei</div></div>
+                <div style="text-align:right"><div class="flow-amount green">+8,240</div><div style="font-size:11px;color:var(--on-surface-variant);margin-top:3px">ETH equiv.</div></div>
+              </div>
+              <div class="cross-flow-item">
+                <div class="flow-badge in">OP</div>
+                <div><div class="flow-pair">Optimism</div><div class="flow-vol">+4,820 ETH · 24h net inflow · avgGas: 1.8 gwei</div></div>
+                <div style="text-align:right"><div class="flow-amount green">+4,820</div><div style="font-size:11px;color:var(--on-surface-variant);margin-top:3px">ETH equiv.</div></div>
+              </div>
+              <div class="cross-flow-item">
+                <div class="flow-badge in">BS</div>
+                <div><div class="flow-pair">Base</div><div class="flow-vol">+3,140 ETH · 24h net inflow · avgGas: 1.4 gwei</div></div>
+                <div style="text-align:right"><div class="flow-amount green">+3,140</div><div style="font-size:11px;color:var(--on-surface-variant);margin-top:3px">ETH equiv.</div></div>
+              </div>
+              <div class="cross-flow-item">
+                <div class="flow-badge out">ET</div>
+                <div><div class="flow-pair">Ethereum L1</div><div class="flow-vol">-16,200 ETH · net outflow to L2s</div></div>
+                <div style="text-align:right"><div class="flow-amount red">-16,200</div><div style="font-size:11px;color:var(--on-surface-variant);margin-top:3px">ETH equiv.</div></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel full-panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-kicker">Cross-asset depth</div>
+                <h2 class="panel-title">Top Asset Pairs — Liquidity Snapshot</h2>
+                <p class="panel-subtitle">Real-time composite book depth across the six highest-volume pairs. Book imbalance > ±40% flagged as significant directional pressure.</p>
+              </div>
+            </div>
+            <table class="chain-table">
+              <thead>
+                <tr>
+                  <th>Asset</th>
+                  <th>24h Volume</th>
+                  <th>Bid Depth</th>
+                  <th>Ask Depth</th>
+                  <th>Imbalance</th>
+                  <th>Spread</th>
+                  <th>Signal</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><div class="chain-name">BTC/USDT</div><div class="chain-meta">Binance · Coinbase · OKX</div></td>
+                  <td>$38.4B</td>
+                  <td class="green">$1.28B</td>
+                  <td class="red">$0.76B</td>
+                  <td class="green">+68% bid</td>
+                  <td>0.01%</td>
+                  <td><span class="tag tag-green">▲ Bid pressure</span></td>
+                </tr>
+                <tr>
+                  <td><div class="chain-name">ETH/USDT</div><div class="chain-meta">Binance · Bybit · Hyperliquid</div></td>
+                  <td>$18.2B</td>
+                  <td class="green">$620M</td>
+                  <td class="red">$580M</td>
+                  <td class="green">+14% bid</td>
+                  <td>0.02%</td>
+                  <td><span class="tag tag-blue">Neutral</span></td>
+                </tr>
+                <tr>
+                  <td><div class="chain-name">SOL/USDT</div><div class="chain-meta">Binance · Jupiter · Raydium</div></td>
+                  <td>$4.1B</td>
+                  <td class="green">$142M</td>
+                  <td class="red">$118M</td>
+                  <td class="green">+28% bid</td>
+                  <td>0.04%</td>
+                  <td><span class="tag tag-green">▲ Bid pressure</span></td>
+                </tr>
+                <tr>
+                  <td><div class="chain-name">AVAX/USDT</div><div class="chain-meta">Binance · Trader Joe</div></td>
+                  <td>$820M</td>
+                  <td class="red">$38M</td>
+                  <td class="green">$44M</td>
+                  <td class="red">-18% ask</td>
+                  <td>0.06%</td>
+                  <td><span class="tag tag-red">▼ Ask pressure</span></td>
+                </tr>
+                <tr>
+                  <td><div class="chain-name">LINK/USDT</div><div class="chain-meta">Binance · Chainlink CCIP</div></td>
+                  <td>$410M</td>
+                  <td class="red">$19M</td>
+                  <td class="green">$24M</td>
+                  <td class="red">-32% ask</td>
+                  <td>0.05%</td>
+                  <td><span class="tag tag-red">▼ Ask pressure</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </article>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
