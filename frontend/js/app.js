@@ -901,11 +901,11 @@ function prefetchAll() {
 
 // Refresh all routes (manual trigger or auto-refresh)
 async function refreshAll() {
-  for (const route of NAV_ITEMS.map((i) => i.id)) {
-    if (route !== 'settings') {
-      _fetchRoute(route, { manual: true });
-    }
-  }
+  const routes = NAV_ITEMS.map((i) => i.id).filter((r) => r !== 'settings');
+  // Set isRefreshing once, then wait for all parallel fetches to complete
+  state.isRefreshing = true;
+  render();
+  await Promise.all(routes.map((route) => _fetchRoute(route, { manual: true })));
 }
 
 async function loadRoute(route, force = false, trigger = 'system') {

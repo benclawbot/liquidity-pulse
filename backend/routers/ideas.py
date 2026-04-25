@@ -105,8 +105,8 @@ async def summary() -> dict[str, Any]:
     spx_quote, spx_src = await get_quote("SPY")
     vix_quote, vix_src = await get_quote("^VIX")
     vix_price = vix_quote.get("price", 20)
-    spx_change = spx_quote.get("change_pct", 0)
-    top_theme = "AI Infra" if spx_change >= 0 else "Defensive"
+    spx_change = spx_quote.get("change_pct") if spx_quote else 0
+    top_theme = "AI Infra" if (spx_change or 0) >= 0 else "Defensive"
     regime_label = "Neutral"
     try:
         signals = {

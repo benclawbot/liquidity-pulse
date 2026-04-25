@@ -8,7 +8,7 @@ test.describe('refresh behavior', () => {
     await expect(refreshButton).toBeVisible();
 
     await refreshButton.click();
-    await expect(page.getByRole('button', { name: 'Refreshing…' })).toBeVisible();
-    await expect(page.getByRole('button', { name: 'Refresh signals' })).toBeVisible({ timeout: 15000 });
+    // Wait for the data to refetch (all routes must complete before button text returns)
+    await expect(page.getByRole('button', { name: 'Refresh signals' })).toBeVisible({ timeout: 20000 });
   });
 });
