@@ -631,7 +631,8 @@ function initials(label) {
     .toUpperCase();
 }
 
-const FUNDING_VENUES: Record<string, string> = {
+const FLOW_VENUES = ['Binance', 'Coinbase', 'OKX', 'Bybit', 'Hyperliquid', 'Kraken'];
+const FUNDING_VENUES = {
   'BTC/USDT': 'Binance · OKX · Bybit',
   'ETH/USDT': 'Binance · Bybit · Hyperliquid',
   'SOL/USDT': 'Binance · Hyperliquid',
@@ -640,7 +641,7 @@ const FUNDING_VENUES: Record<string, string> = {
   'LINK/USDT': 'Binance · Bybit',
   'AVAX/USDT': 'Binance only',
 };
-const TVL_VENUES: Record<string, string> = {
+const TVL_VENUES = {
   'Arbitrum': 'LayerZero ·bridge',
   'Base': 'Coinbase · LayerZero',
   'Solana': 'Wormhole',
@@ -648,7 +649,7 @@ const TVL_VENUES: Record<string, string> = {
   'Optimism': 'Across · Optimism',
 };
 
-function renderFundingRows(rates: any[]): string {
+function renderFundingRows(rates) {
   if (!rates || rates.length === 0) {
     return '<p style="color:var(--on-surface-variant);font-size:13px">Funding data unavailable.</p>';
   }
@@ -674,7 +675,7 @@ function renderFundingRows(rates: any[]): string {
   }).join('');
 }
 
-function renderTvlRows(chains: any[]): string {
+function renderTvlRows(chains) {
   if (!chains || chains.length === 0) {
     return '<p style="color:var(--on-surface-variant);font-size:13px">TVL data unavailable.</p>';
   }
@@ -1268,15 +1269,15 @@ const SCORING_CRITERIA = [
   { key: 'Conviction',  label: 'Conviction bands',    val: 'High / Med / Watch' },
   { key: 'Risk',        label: 'Risk labels',         val: 'Low · Med · High' },
 ];
-function riskDot(risk: string) {
+function riskDot(risk) {
   const cls = risk === 'Low' ? 'low' : risk === 'High' ? 'high' : 'med';
   return `<span class="risk-dot ${cls}"></span>`;
 }
-function ideaFilter(ideas: any[], tab: string): any[] {
+function ideaFilter(ideas, tab) {
   if (tab === 'All') return ideas;
   return ideas.filter(i => i.theme?.toLowerCase().includes(tab.toLowerCase()));
 }
-function renderIdeaCards(ideas: any[]): string {
+function renderIdeaCards(ideas) {
   if (!ideas || ideas.length === 0) {
     return '<p style="color:var(--on-surface-variant);font-size:13px">No ideas in this category.</p>';
   }
@@ -1320,7 +1321,7 @@ function renderIdeaCards(ideas: any[]): string {
     `;
   }).join('');
 }
-function renderScoringPanel(): string {
+function renderScoringPanel() {
   const riskRows = SCORING_CRITERIA.map(c => `
     <div class="criteria-item">
       <div class="criteria-key">${escapeHtml(c.label)}</div>
