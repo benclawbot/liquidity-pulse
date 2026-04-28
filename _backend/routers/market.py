@@ -274,15 +274,38 @@ async def snapshot() -> dict[str, Any]:
         {"id": "market_conviction", "label": "Market Conviction", "value": market_conviction["score"], "foot": f"BTC {btc_chg:+.2f}% | DXY {dxy_val:.2f}", "tone": market_conviction['tone']},
         {"id": "trend_signal", "label": "Trend Signal", "value": trend_signal["score"], "foot": f"Oil {oil_val:.2f} | 10Y {treasury_val:.2f}", "tone": trend_signal['tone']},
     ]
+    # Build sector list with change data for heatmap
+    sectors = [
+        {
+            "symbol": sym,
+            "label": label,
+            "change_pct": sector_data[i].get("change_pct") if sector_data[i].get("change_pct") is not None else 0.0,
+            "source": sector_sources.get(sym, "unavailable"),
+        }
+        for i, (sym, label) in enumerate(SECTOR_ETFS)
+    ]
+
+    # Signal inputs breakdown
+    signal_inputs = {
+        "vix": round(vix_val, 2),
+        "treasury_10y": round(treasury_val, 3),
+        "treasury_2y": 4.05,
+        "credit_spread": 2.9,
+        "btc_change_pct": round(btc_chg, 3),
+        "dxy_change_pct": round(dxy.get("change_pct", 0), 3),
+        "spx_change_pct": round(spx_chg, 3),
+        "oil_price": round(oil_val, 2),
+    }
 
     # Aggregate sources
     sources = {
         **market_sources,
         "sectors": aggregate_source_status(sector_sources),
         "flow_leaders": aggregate_source_status({fl["theme"]: fl.get("source", "unavailable") for fl in flow_leaders}),
-        "transmission_nodes": aggregate_source_status({n["key"]: n.get("source", "unavailable") for n in transmission_nodes}),
+        "transmission_nodes": aggregate_source_status({
+            n["key"]: n.get("source", "unavailable") for n in transmission_nodes}),
         "recommendations": aggregate_source_status(rec_sources),
-        "signal_inputs": "live",  # signal engine always operational (uses safe defaults)
+        "signal_inputs": "live",
     }
 
     return {
@@ -301,4 +324,13 @@ async def snapshot() -> dict[str, Any]:
         "flow_leaders": flow_leaders,
         "recommendations": recommendations,
         "transmission_nodes": transmission_nodes,
+        "sectors": sectors,
+        "signal_inputs": signal_inputs,
+        "center_catalyst": {
+            "title": "Market Catalyst",
+            "headline": regime.get("label", "Mixed"),
+            "body": f"VIX {vix_val:.1f} | 10Y {treasury_val:.2f}% | BTC {btc_chg:+.2f}% | Oil ${oil_val:.2f}",
+            "lag": regime.get("confidence", 0) >= 0.75 and "High confidence" or None,
+            "confidence": f"{int(regime.get('confidence', 0) * 100)}%",
+        },
     }

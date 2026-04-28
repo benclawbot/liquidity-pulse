@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>liquidity-pulse Architecture</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0d1117; color: #e6edf3; font-family: 'Segoe UI', system-ui, sans-serif; padding: 24px; }
+  .header { font-size: 18px; font-weight: 600; margin-bottom: 8px; color: #e6edf3; }
+  .meta { color: #7d8590; font-size: 12px; margin-bottom: 24px; }
+  .summary { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; margin-bottom: 24px; }
+  .summary div { margin: 4px 0; color: #7d8590; font-size: 13px; }
+  .summary strong { color: #e6edf3; }
+  .diagram { margin-bottom: 24px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th { text-align: left; background: #161b22; color: #7d8590; padding: 8px 12px; border-bottom: 1px solid #30363d; }
+  td { padding: 8px 12px; border-bottom: 1px solid #21262d; color: #e6edf3; }
+  tr:hover { background: #161b22; }
+</style>
+</head>
+<body>
+  <div class="header">liquidity-pulse Architecture</div>
+  <div class="meta">Scanned: 2026-04-28 15:42 · /home/thomas/Dropbox/Projects/liquidity-pulse</div>
+
+  <div class="summary">
+  <div><strong>APIs (6)</strong>: main, market, ideas, impacts, trends</div>
+  <div><strong>Services (6)</strong>: fred, crypto, crypto_public, defillama, yahoo_finance</div>
+  <div><strong>Data (4)</strong>: market, ideas, flows, test_signal_engine</div>
+  <div><strong>Frontend (6)</strong>: navigation.spec, discovery.spec, refresh.spec, flows-ideas.spec, shell.spec</div>
+  </div>
+
+  <div class="diagram">
+    <svg style='background:#0d1117; border-radius:8px; border: 1px solid #30363d;' viewBox="0 0 900 600" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="arrowhead" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#7d8590"/></marker></defs>
+<text x="20" y="80" fill="#bc8cff" font-size="12" font-weight="600">Frontend</text>
+<rect x="20" y="90" width="180" height="70" class="client-box" style="stroke: #bc8cff"/>
+<text x="110" y="118" text-anchor="middle" class="box-title" fill="#bc8cff">navigation.spec</text>
+<text x="110" y="136" text-anchor="middle" class="box-desc">e2e/navigation.spec.js</text>
+<rect x="240" y="90" width="180" height="70" class="client-box" style="stroke: #bc8cff"/>
+<text x="330" y="118" text-anchor="middle" class="box-title" fill="#bc8cff">discovery.spec</text>
+<text x="330" y="136" text-anchor="middle" class="box-desc">e2e/discovery.spec.js</text>
+<rect x="460" y="90" width="180" height="70" class="client-box" style="stroke: #bc8cff"/>
+<text x="550" y="118" text-anchor="middle" class="box-title" fill="#bc8cff">refresh.spec</text>
+<text x="550" y="136" text-anchor="middle" class="box-desc">e2e/refresh.spec.js</text>
+<rect x="680" y="90" width="180" height="70" class="client-box" style="stroke: #bc8cff"/>
+<text x="770" y="118" text-anchor="middle" class="box-title" fill="#bc8cff">flows-ideas.spec</text>
+<text x="770" y="136" text-anchor="middle" class="box-desc">e2e/flows-ideas.spec.js</text>
+<rect x="900" y="90" width="180" height="70" class="client-box" style="stroke: #bc8cff"/>
+<text x="990" y="118" text-anchor="middle" class="box-title" fill="#bc8cff">shell.spec</text>
+<text x="990" y="136" text-anchor="middle" class="box-desc">e2e/shell.spec.js</text>
+<rect x="1120" y="90" width="180" height="70" class="client-box" style="stroke: #bc8cff"/>
+<text x="1210" y="118" text-anchor="middle" class="box-title" fill="#bc8cff">app</text>
+<text x="1210" y="136" text-anchor="middle" class="box-desc">js/app.js</text>
+<text x="20" y="220" fill="#58a6ff" font-size="12" font-weight="600">API Layer</text>
+<rect x="20" y="230" width="180" height="70" class="box" style="stroke: #58a6ff"/>
+<text x="110" y="258" text-anchor="middle" class="box-title" fill="#58a6ff">main</text>
+<text x="110" y="276" text-anchor="middle" class="box-desc">_backend/main.py</text>
+<rect x="240" y="230" width="180" height="70" class="box" style="stroke: #58a6ff"/>
+<text x="330" y="258" text-anchor="middle" class="box-title" fill="#58a6ff">market</text>
+<text x="330" y="276" text-anchor="middle" class="box-desc">routers/market.py</text>
+<rect x="460" y="230" width="180" height="70" class="box" style="stroke: #58a6ff"/>
+<text x="550" y="258" text-anchor="middle" class="box-title" fill="#58a6ff">ideas</text>
+<text x="550" y="276" text-anchor="middle" class="box-desc">routers/ideas.py</text>
+<rect x="680" y="230" width="180" height="70" class="box" style="stroke: #58a6ff"/>
+<text x="770" y="258" text-anchor="middle" class="box-title" fill="#58a6ff">impacts</text>
+<text x="770" y="276" text-anchor="middle" class="box-desc">routers/impacts.py</text>
+<rect x="900" y="230" width="180" height="70" class="box" style="stroke: #58a6ff"/>
+<text x="990" y="258" text-anchor="middle" class="box-title" fill="#58a6ff">trends</text>
+<text x="990" y="276" text-anchor="middle" class="box-desc">routers/trends.py</text>
+<rect x="1120" y="230" width="180" height="70" class="box" style="stroke: #58a6ff"/>
+<text x="1210" y="258" text-anchor="middle" class="box-title" fill="#58a6ff">flows</text>
+<text x="1210" y="276" text-anchor="middle" class="box-desc">routers/flows.py</text>
+<text x="20" y="360" fill="#3fb950" font-size="12" font-weight="600">Services</text>
+<rect x="20" y="370" width="180" height="70" class="box" style="stroke: #3fb950"/>
+<text x="110" y="398" text-anchor="middle" class="box-title" fill="#3fb950">fred</text>
+<text x="110" y="416" text-anchor="middle" class="box-desc">services/fred.py</text>
+<rect x="240" y="370" width="180" height="70" class="box" style="stroke: #3fb950"/>
+<text x="330" y="398" text-anchor="middle" class="box-title" fill="#3fb950">crypto</text>
+<text x="330" y="416" text-anchor="middle" class="box-desc">services/crypto.py</text>
+<rect x="460" y="370" width="180" height="70" class="box" style="stroke: #3fb950"/>
+<text x="550" y="398" text-anchor="middle" class="box-title" fill="#3fb950">crypto_public</text>
+<text x="550" y="416" text-anchor="middle" class="box-desc">services/crypto_public.py</text>
+<rect x="680" y="370" width="180" height="70" class="box" style="stroke: #3fb950"/>
+<text x="770" y="398" text-anchor="middle" class="box-title" fill="#3fb950">defillama</text>
+<text x="770" y="416" text-anchor="middle" class="box-desc">services/defillama.py</text>
+<rect x="900" y="370" width="180" height="70" class="box" style="stroke: #3fb950"/>
+<text x="990" y="398" text-anchor="middle" class="box-title" fill="#3fb950">yahoo_finance</text>
+<text x="990" y="416" text-anchor="middle" class="box-desc">services/yahoo_finance.py</text>
+<rect x="1120" y="370" width="180" height="70" class="box" style="stroke: #3fb950"/>
+<text x="1210" y="398" text-anchor="middle" class="box-title" fill="#3fb950">api</text>
+<text x="1210" y="416" text-anchor="middle" class="box-desc">js/api.js</text>
+<text x="20" y="500" fill="#f78166" font-size="12" font-weight="600">Data Layer</text>
+<rect x="30" y="510" width="180" height="70" class="db-box" style="stroke: #f78166"/>
+<text x="120" y="538" text-anchor="middle" class="box-title" fill="#f78166">market</text>
+<text x="120" y="556" text-anchor="middle" class="box-desc">routers/market.py</text>
+<rect x="250" y="510" width="180" height="70" class="db-box" style="stroke: #f78166"/>
+<text x="340" y="538" text-anchor="middle" class="box-title" fill="#f78166">ideas</text>
+<text x="340" y="556" text-anchor="middle" class="box-desc">routers/ideas.py</text>
+<rect x="470" y="510" width="180" height="70" class="db-box" style="stroke: #f78166"/>
+<text x="560" y="538" text-anchor="middle" class="box-title" fill="#f78166">flows</text>
+<text x="560" y="556" text-anchor="middle" class="box-desc">routers/flows.py</text>
+<rect x="690" y="510" width="180" height="70" class="db-box" style="stroke: #f78166"/>
+<text x="780" y="538" text-anchor="middle" class="box-title" fill="#f78166">test_signal_engine</text>
+<text x="780" y="556" text-anchor="middle" class="box-desc">tests/test_signal_engine.</text>
+<line x1="110" y1="145" x2="330" y2="105" class="arrow"/>
+<line x1="330" y1="145" x2="550" y2="105" class="arrow"/>
+<line x1="550" y1="145" x2="770" y2="105" class="arrow"/>
+<line x1="770" y1="145" x2="990" y2="105" class="arrow"/>
+<line x1="990" y1="145" x2="1210" y2="105" class="arrow"/>
+<line x1="1210" y1="145" x2="110" y2="245" class="arrow"/>
+<line x1="110" y1="285" x2="120" y2="525" class="arrow"/>
+<line x1="120" y1="565" x2="340" y2="525" class="arrow"/>
+<line x1="340" y1="565" x2="770" y2="245" class="arrow"/>
+<line x1="770" y1="285" x2="990" y2="245" class="arrow"/>
+<line x1="990" y1="285" x2="560" y2="525" class="arrow"/>
+<line x1="560" y1="565" x2="110" y2="385" class="arrow"/>
+<line x1="110" y1="425" x2="330" y2="385" class="arrow"/>
+<line x1="330" y1="425" x2="550" y2="385" class="arrow"/>
+<line x1="550" y1="425" x2="770" y2="385" class="arrow"/>
+<line x1="770" y1="425" x2="990" y2="385" class="arrow"/>
+<line x1="990" y1="425" x2="1210" y2="385" class="arrow"/>
+<line x1="1210" y1="425" x2="780" y2="525" class="arrow"/>
+<rect x="20" y="570" width="12" height="12" style="fill: none; stroke: #bc8cff"/>
+<text x="36" y="580" fill="#7d8590" font-size="11">Frontend</text>
+<rect x="160" y="570" width="12" height="12" style="fill: none; stroke: #58a6ff"/>
+<text x="176" y="580" fill="#7d8590" font-size="11">API</text>
+<rect x="300" y="570" width="12" height="12" style="fill: none; stroke: #3fb950"/>
+<text x="316" y="580" fill="#7d8590" font-size="11">Service</text>
+<rect x="440" y="570" width="12" height="12" style="fill: none; stroke: #f78166"/>
+<text x="456" y="580" fill="#7d8590" font-size="11">Database</text>
+<rect x="580" y="570" width="12" height="12" style="fill: none; stroke: #d29922"/>
+<text x="596" y="580" fill="#7d8590" font-size="11">External</text>
+<text x="890" y="580" text-anchor="end" fill="#484f58" font-size="10">liquidity-pulse Architecture · 2026-04-28</text>
+</svg>
+  </div>
+
+  <table><thead><tr><th>Name</th><th>File</th><th>Routes</th></tr></thead><tbody>    <tr><td>main</td><td>_backend/main.py</td><td>—</td></tr>
+    <tr><td>market</td><td>_backend/routers/market.py</td><td>—</td></tr>
+    <tr><td>ideas</td><td>_backend/routers/ideas.py</td><td>—</td></tr>
+    <tr><td>impacts</td><td>_backend/routers/impacts.py</td><td>—</td></tr>
+    <tr><td>trends</td><td>_backend/routers/trends.py</td><td>—</td></tr>
+    <tr><td>flows</td><td>_backend/routers/flows.py</td><td>—</td></tr></tbody></table>
+</body>
+</html>

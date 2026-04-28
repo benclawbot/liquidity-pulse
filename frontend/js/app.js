@@ -11,6 +11,177 @@ import {
   toneClass,
 } from './helpers.js';
 
+// ─── Depth Chart ──────────────────────────────────────────────────────────────
+
+function deriveDepthChartData(bids = [], asks = [], midPrice = 0) {
+  const sortedBids = [...bids].sort((a, b) => Number(b[0]) - Number(a[0]));
+  const sortedAsks = [...asks].sort((a, b) => Number(a[0]) - Number(b[0]));
+
+  const topBid = Number(sortedBids[0]?.[0] || 0);
+  const topAsk = Number(sortedAsks[0]?.[0] || 0);
+  const spread = topAsk > 0 && topBid > 0 ? ((topAsk - topBid) / topAsk) * 100 : 0.01;
+  const imbalance = topBid > 0 && topAsk > 0
+    ? ((topBid * Number(sortedBids[0]?.[1] || 0)) - (topAsk * Number(sortedAsks[0]?.[1] || 0))) /
+      Math.max(topBid * Number(sortedBids[0]?.[1] || 0), topAsk * Number(sortedAsks[0]?.[1] || 0)) * 100
+    : 0;
+
+  // Build cumulative bid depth from top of book outward (price descending → x ascending)
+  const bidDepths = [];
+  let cumBid = 0;
+  for (const [price, size] of sortedBids) {
+    cumBid += Number(price) * Number(size);
+    bidDepths.push({ price: Number(price), cumDepth: cumBid });
+  }
+
+  // Build cumulative ask depth from top of book outward (price ascending → x ascending)
+  const askDepths = [];
+  let cumAsk = 0;
+  for (const [price, size] of sortedAsks) {
+    cumAsk += Number(price) * Number(size);
+    askDepths.push({ price: Number(price), cumDepth: cumAsk });
+  }
+
+  if (!bidDepths.length) bidDepths.push({ price: midPrice * 0.98, cumDepth: 0 });
+  if (!askDepths.length) askDepths.push({ price: midPrice * 1.02, cumDepth: 0 });
+
+  const allPrices = [...bidDepths.map(d => d.price), ...askDepths.map(d => d.price)];
+  const minPrice = Math.min(...allPrices);
+  const maxPrice = Math.max(...allPrices);
+  const priceRange = maxPrice - minPrice || 1;
+
+  const maxDepth = Math.max(
+    bidDepths[bidDepths.length - 1]?.cumDepth || 0,
+    askDepths[askDepths.length - 1]?.cumDepth || 0,
+  );
+
+  // Map price → SVG x (0–1000)
+  const xOf = (price) => ((price - minPrice) / priceRange) * 1000;
+  // Map depth → SVG y (0 = top = 0, max = bottom = 320)
+  const yOf = (depth) => 320 - (maxDepth > 0 ? (depth / maxDepth) * 300 : 0);
+
+  // Build stepped bid path: from left (y=320) up to first bid, then step through each
+  let bidPath = 'M 0 320';
+  bidPath += ` L ${xOf(bidDepths[0].price)} 320`;
+  for (const { price, cumDepth } of bidDepths) {
+    const x = xOf(price);
+    const y = yOf(cumDepth);
+    bidPath += ` L ${x} ${y}`;
+  }
+  bidPath += ` L 1000 ${yOf(bidDepths[bidDepths.length - 1]?.cumDepth || 0)} L 1000 320 Z`;
+
+  let askPath = 'M 0 320';
+  askPath += ` L ${xOf(askDepths[0].price)} 320`;
+  for (const { price, cumDepth } of askDepths) {
+    const x = xOf(price);
+    const y = yOf(cumDepth);
+    askPath += ` L ${x} ${y}`;
+  }
+  askPath += ` L 1000 ${yOf(askDepths[askDepths.length - 1]?.cumDepth || 0)} L 1000 320 Z`;
+
+  const midX = midPrice > 0 ? xOf(midPrice) : 500;
+
+  return {
+    bidPath,
+    askPath,
+    midX,
+    spread: spread.toFixed(2),
+    imbalance: imbalance.toFixed(0),
+    imbalanceTone: imbalance >= 0 ? 'green' : 'red',
+    imbalanceLabel: imbalance >= 0 ? 'Bid side dominant' : 'Ask side dominant',
+    topBid,
+    topAsk,
+    bidDepths,
+    askDepths,
+  };
+}
+
+function renderDepthChart(data) {
+  const bestBid = data.depth?.bids?.[0] || [0, 0];
+  const bestAsk = data.depth?.asks?.[0] || [0, 0];
+  const midPrice = Number(bestBid[0] || 0) && Number(bestAsk[0] || 0)
+    ? (Number(bestBid[0]) + Number(bestAsk[0])) / 2
+    : Number(data.depth?.bids?.[0]?.[0] || 0) || 0;
+
+  const { bidPath, askPath, midX, spread, imbalance, imbalanceTone, imbalanceLabel } =
+    deriveDepthChartData(data.depth?.bids || [], data.depth?.asks || [], midPrice);
+
+  const venues = data.depth?.symbol ? `${data.depth.symbol} · Binance · Bybit · OKX` : 'BTC/USDT · Binance · Bybit · OKX';
+  const priceDisplay = midPrice > 0 ? formatCurrency(midPrice) : '—';
+  const priceDirection = midPrice > 0 ? '▲' : '';
+
+  return `
+    <div class="depth-chart-area">
+      <div class="depth-header">
+        <div>
+          <div class="depth-pair">${escapeHtml(venues)}</div>
+          <div class="depth-price">${priceDisplay} <span style="font-size:16px;color:var(--secondary)">${priceDirection}</span></div>
+          <div class="depth-spread">Spread: ${spread}% · Best bid: ${formatCurrency(bestBid[0])} / Best ask: ${formatCurrency(bestAsk[0])}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="depth-legend-label">Book Imbalance</div>
+          <div class="depth-imbalance ${imbalanceTone}">${imbalance >= 0 ? '+' : ''}${imbalance}%</div>
+          <div class="depth-imbalance-foot">${imbalanceLabel}</div>
+        </div>
+      </div>
+      <div class="depth-canvas-wrap">
+        <svg class="depth-canvas" viewBox="0 0 1000 320" preserveAspectRatio="none" aria-hidden="true">
+          <path d="${bidPath}" fill="rgba(78,222,163,0.12)" stroke="rgba(78,222,163,0.45)" stroke-width="2"/>
+          <path d="${askPath}" fill="rgba(255,84,81,0.10)" stroke="rgba(255,84,81,0.38)" stroke-width="2"/>
+          <line x1="${midX}" y1="0" x2="${midX}" y2="320" stroke="rgba(173,198,255,0.35)" stroke-width="1" stroke-dasharray="6 6"/>
+          <text x="${midX}" y="18" text-anchor="middle" fill="rgba(173,198,255,0.7)" font-size="12" font-weight="700" letter-spacing="0.1em">MID PRICE</text>
+        </svg>
+      </div>
+    </div>
+  `;
+}
+
+// ─── Cross-Asset Correlation Heatmap ─────────────────────────────────────────
+
+function renderCorrelationHeatmap(matrix = []) {
+  if (!matrix.length) return '<p style="color:var(--on-surface-variant);font-size:13px">No correlation data available.</p>';
+
+  const labels = matrix.map(r => r.pair || r.label || '—');
+  const flat = matrix.map(row => row.values || []);
+
+  const cellColor = (val) => {
+    if (val > 0.6) return 'rgba(78,222,163,0.30)';
+    if (val > 0.3) return 'rgba(78,222,163,0.16)';
+    if (val > 0) return 'rgba(78,222,163,0.08)';
+    if (val > -0.3) return 'rgba(255,84,81,0.08)';
+    if (val > -0.6) return 'rgba(255,84,81,0.16)';
+    return 'rgba(255,84,81,0.30)';
+  };
+  const textColor = (val) => {
+    if (Math.abs(val) > 0.3) return 'rgba(255,255,255,0.85)';
+    return 'rgba(173,198,255,0.8)';
+  };
+
+  // Header row — top axis labels
+  let html = `<div class="matrix-wrap">`;
+  html += `<div class="matrix-row-header">`;
+  html += `<div class="matrix-cell matrix-corner"></div>`;
+  for (const label of labels) {
+    html += `<div class="matrix-cell matrix-label top">${escapeHtml(label)}</div>`;
+  }
+  html += `</div>`;
+
+  // Data rows — left axis label + correlation cells
+  for (let i = 0; i < flat.length; i++) {
+    html += `<div class="matrix-row">`;
+    html += `<div class="matrix-label">${escapeHtml(labels[i])}</div>`;
+    for (let j = 0; j < flat[i].length; j++) {
+      const val = Number(flat[i][j]) || 0;
+      const bg = cellColor(val);
+      const tc = textColor(val);
+      const isDiag = i === j;
+      html += `<div class="matrix-cell data${isDiag ? ' diagonal' : ''}" style="background:${bg};color:${isDiag ? 'rgba(140,144,159,0.4)' : tc}">${val > 0 ? '+' : ''}${val.toFixed(2)}</div>`;
+    }
+    html += `</div>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
 const appEl = document.getElementById('app');
 const state = {
   route: normalizeRoute(routeFromHash(window.location.hash)),
@@ -21,6 +192,8 @@ const state = {
   isRefreshing: false,       // true while any route is being fetched
   lastAllRefreshed: null,    // timestamp of last complete full refresh
   pendingRoutes: new Set(),  // routes currently being fetched
+  ideasTab: 'All',          // active Ideas tab
+
 };
 
 function normalizeRoute(route) {
@@ -105,6 +278,7 @@ function renderTopbar(route, data) {
   return `
     <header class="topbar">
       <div class="brand-row">
+        <button class="hamburger-btn" data-action="menu" aria-label="Open menu">☰</button>
         <div class="brand">LIQUIDITY PULSE</div>
       </div>
 
@@ -119,7 +293,50 @@ function renderTopbar(route, data) {
   `;
 }
 
+function heatClass(pct) {
+  if (pct >= 2) return 'pos-3';
+  if (pct >= 1) return 'pos-2';
+  if (pct > 0)  return 'pos-1';
+  if (pct === 0) return 'neutral';
+  if (pct <= -2) return 'neg-3';
+  if (pct <= -1) return 'neg-2';
+  return 'neg-1';
+}
+
 function renderDiscovery(data) {
+  // ── Market Overview: all 6 assets ─────────────────────────────────────
+  const ASSET_KEYS = [
+    { key: 'spx',      label: 'S&P 500',   format: (v) => v?.price?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '—', extra: (v) => v?.volume ? `Vol ${(v.volume/1e9).toFixed(1)}B` : '' },
+    { key: 'vix',      label: 'VIX',        format: (v) => v?.price != null ? v.price.toFixed(2) : '—', extra: () => '' },
+    { key: 'dxy',      label: 'DXY',         format: (v) => v?.price != null ? v.price.toFixed(2) : '—', extra: () => '' },
+    { key: 'yield_10y',label: '10Y Yield',  format: (v) => v?.yield != null ? v.yield.toFixed(3) + '%' : '—', extra: () => '' },
+    { key: 'oil',      label: 'Oil',         format: (v) => v?.price != null ? '$' + v.price.toFixed(2) : '—', extra: (v) => v?.volume ? `Vol ${(v.volume/1e6).toFixed(1)}M` : '' },
+    { key: 'btc',      label: 'BTC',         format: (v) => v?.price != null ? '$' + v.price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) : '—', extra: (v) => v?.volume ? `Vol $${(v.volume/1e9).toFixed(1)}B` : '' },
+  ];
+
+  const marketCards = ASSET_KEYS.map(({ key, label, format, extra }) => {
+    const v = data[key];
+    const chg = v?.change_pct ?? 0;
+    const tone = chg > 0 ? 'green' : chg < 0 ? 'red' : 'neutral';
+    const meta = extra(v);
+    return `
+      <div class="market-card">
+        <div class="market-card-ticker">${escapeHtml(label)}</div>
+        <div class="market-card-price">${format(v)}</div>
+        <div class="market-card-change ${tone}">${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%</div>
+        ${meta ? `<div class="market-card-meta">${escapeHtml(meta)}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  // ── Sector heatmap ────────────────────────────────────────────────────
+  const sectors = data.sectors || [];
+  const heatmapTiles = sectors.map((s) => {
+    const cls = heatClass(s.change_pct || 0);
+    return `<div class="heat ${cls}">${escapeHtml(s.label)}</div>`;
+  }).join('');
+
+  // ── Transmission nodes ─────────────────────────────────────────────────
   const nodes = (data.transmission_nodes || [])
     .map((node) => {
       const toneClassName = node.tone === 'positive' ? 'green-node' : node.tone === 'negative' ? 'red-node' : '';
@@ -132,6 +349,7 @@ function renderDiscovery(data) {
     })
     .join('');
 
+  // ── Flow Leaders ───────────────────────────────────────────────────────
   const leaders = (data.flow_leaders || [])
     .map(
       (item) => `
@@ -147,37 +365,110 @@ function renderDiscovery(data) {
     )
     .join('');
 
+  // ── Recommendations table ──────────────────────────────────────────────
   const recommendationRows = (data.recommendations || [])
     .map(
       (item) => `
         <tr>
-          <td><strong>${escapeHtml(item.ticker)}</strong></td>
-          <td>${escapeHtml(item.name)}</td>
-          <td>${escapeHtml(item.thesis)}</td>
-          <td>${escapeHtml(item.conviction)}</td>
-          <td>${escapeHtml(item.entry)}</td>
-          <td>${escapeHtml(item.horizon)}</td>
+          <td class="ticker">${escapeHtml(item.ticker)}</td>
+          <td>${escapeHtml(item.name || item.ticker)}</td>
+          <td class="muted">${escapeHtml(item.thesis || '')}</td>
+          <td>${escapeHtml(item.conviction || '')}</td>
+          <td>${escapeHtml(item.entry || '')}</td>
+          <td>${escapeHtml(item.horizon || '')}</td>
         </tr>
       `,
     )
     .join('');
 
+  // ── Watchlist (properly formatted from recommendations) ────────────────
   const watchItems = (data.recommendations || [])
+    .slice(0, 5)
     .map(
       (item) => `
         <div class="watch-item">
           <div class="watch-left">
             <div class="watch-ticker">${escapeHtml(item.ticker)}</div>
-            <div class="watch-note">${escapeHtml(item.entry)}</div>
+            <div class="watch-note">${escapeHtml(item.horizon || 'Medium horizon')}</div>
           </div>
           <div class="watch-right">
-            <div class="watch-price">${escapeHtml(item.conviction)}</div>
-            <div class="watch-note">${escapeHtml(item.horizon)}</div>
+            <div class="watch-price">${item.price != null ? '$' + item.price.toFixed(2) : '—'}</div>
+            <div class="watch-note">${escapeHtml(item.conviction || '')}</div>
           </div>
         </div>
       `,
     )
     .join('');
+
+  // ── Strength / weaken trends ───────────────────────────────────────────
+  const sig = data.signal_inputs || {};
+  const vixVal = sig.vix || 20;
+  const spxChg = sig.spx_change_pct || 0;
+  const btcChg = sig.btc_change_pct || 0;
+  const oilVal = sig.oil_price || 80;
+  const dxyVal = 98;
+  const yieldVal = sig.treasury_10y || 4.3;
+
+  const strengthening = [];
+  const weakening = [];
+
+  if (vixVal < 18) strengthening.push({ name: 'Low-vol regime', note: 'VIX ' + vixVal.toFixed(1) + ' confirms calm, breadth expansion likely', score: Math.round((30 - vixVal) * 4) });
+  if (spxChg > 0.5) strengthening.push({ name: 'Equity momentum', note: 'S&P +' + spxChg.toFixed(2) + '% — risk-on breadth improving', score: Math.round(spxChg * 40) });
+  if (btcChg > 0.5) strengthening.push({ name: 'BTC risk-on', note: 'BTC +' + btcChg.toFixed(2) + '% — liquidity flowing into risk assets', score: Math.round(btcChg * 30) });
+  if (oilVal > 90) weakening.push({ name: 'Energy inflation', note: 'Oil $' + oilVal.toFixed(2) + ' — cost-push pressure on consumer discretionary', score: -Math.round((oilVal - 85) * 5) });
+  if (yieldVal > 4.5) weakening.push({ name: 'Rate sensitivity', note: '10Y ' + yieldVal.toFixed(2) + '% — duration assets and growth multiples compressed', score: -Math.round((yieldVal - 4.5) * 40) });
+  if (dxyVal > 103) weakening.push({ name: 'Dollar headwind', note: 'DXY ' + dxyVal.toFixed(2) + ' — headwind for EM and commodities', score: -Math.round((dxyVal - 103) * 8) });
+  if (spxChg < -0.5) weakening.push({ name: 'Equity pressure', note: 'S&P ' + spxChg.toFixed(2) + '% — risk-off rotation likely', score: Math.round(spxChg * 40) });
+
+  const trendItems = (items, tone) => items.map((t) => `
+    <div class="trend-item ${tone}">
+      <div>
+        <div class="trend-name">${escapeHtml(t.name)}</div>
+        <div class="trend-note">${escapeHtml(t.note)}</div>
+      </div>
+      <div class="trend-score ${tone}">${t.score > 0 ? '+' : ''}${t.score}</div>
+    </div>
+  `).join('');
+
+  const strengthItems = trendItems(strengthening.slice(0, 3), 'green');
+  const weakenItems   = trendItems(weakening.slice(0, 3), 'red');
+
+  // ── Impact Feed ────────────────────────────────────────────────────────
+  const feedItems = [
+    {
+      cat: 'macro', icon: 'FI',
+      title: 'Treasury issuance mix points to tighter front-end liquidity',
+      body: 'Bill-heavy financing could compete with risk assets for short-duration cash while still leaving long-end rates elevated enough to restrain expensive growth leadership.',
+      meta: '12 min ago · Macro',
+    },
+    {
+      cat: 'tech', icon: 'AI',
+      title: 'Hyperscaler capex broadens from chips to power procurement',
+      body: 'The market is beginning to price power availability, cooling, switchgear, and utility relationships as part of the AI infrastructure stack rather than just semis and networking.',
+      meta: '48 min ago · Tech / Utilities',
+    },
+    {
+      cat: 'rates', icon: '10Y',
+      title: 'Real yields grinding higher as breakevens compress',
+      body: 'With nominal 10Y pinned near 4.3% and inflation expectations softening, the real yield pocket at +1.8% is increasingly a headwind for unprofitable tech and rate-sensitive sectors.',
+      meta: '1 hr ago · Rates',
+    },
+    {
+      cat: 'equity', icon: 'SPX',
+      title: 'Narrow breadth capped by sector rotation away from consensus',
+      body: 'S&P flat on the day despite a 3:1 advance/decline ratio. Leadership rotating from mega-cap tech into industrials, utilities, and selective energy — a健康的 breadth-widening signal.',
+      meta: '2 hr ago · Equities',
+    },
+  ].map((f) => `
+    <div class="feed-item ${f.cat}">
+      <div class="feed-icon">${escapeHtml(f.icon)}</div>
+      <div>
+        <div class="feed-title">${escapeHtml(f.title)}</div>
+        <div class="feed-body">${escapeHtml(f.body)}</div>
+        <div class="feed-meta">${escapeHtml(f.meta)}</div>
+      </div>
+    </div>
+  `).join('');
 
   return `
     <section class="hero-row">
@@ -194,6 +485,18 @@ function renderDiscovery(data) {
     ${renderMetrics(data.metrics)}
 
     <section class="grid-12">
+      <div style="grid-column: span 12;">
+        <div class="panel-header" style="margin-bottom: 14px;">
+          <div>
+            <div class="panel-kicker">Cross-asset snapshot</div>
+            <h2 class="panel-title">Market Overview</h2>
+          </div>
+        </div>
+        <div class="market-overview-grid">${marketCards}</div>
+      </div>
+    </section>
+
+    <section class="grid-12">
       <article class="panel hero-panel">
         <div class="panel-header">
           <div>
@@ -208,8 +511,8 @@ function renderDiscovery(data) {
             <div class="node-row">${nodes}</div>
             <div class="center-catalyst">
               <div class="title">Dominant catalyst</div>
-              <div class="headline">AI power demand + sticky rates</div>
-              <div class="body">Risk appetite is stabilizing while elevated yields keep investors selective. Leadership remains strongest in power, cooling, electrical equipment, and second-order infrastructure beneficiaries.</div>
+              <div class="headline">${escapeHtml(data.regime?.label || 'Mixed regime')}</div>
+              <div class="body">${data.signal_inputs ? escapeHtml('VIX ' + data.signal_inputs.vix + ' | 10Y ' + data.signal_inputs.treasury_10y + '% | BTC ' + (data.signal_inputs.btc_change_pct >= 0 ? '+' : '') + data.signal_inputs.btc_change_pct + '% | Oil $' + data.signal_inputs.oil_price) : 'Live regime signal'}</div>
               <div class="chip" style="margin:0 auto; background:rgba(78,222,163,0.10); border:1px solid rgba(78,222,163,0.18); color:var(--secondary);">Confidence ${Math.round((data.regime?.confidence || 0.7) * 100)}%</div>
             </div>
           </div>
@@ -228,6 +531,64 @@ function renderDiscovery(data) {
           <div class="theme-list">${leaders}</div>
         </article>
       </div>
+    </section>
+
+    <section class="grid-12">
+      <article class="panel full-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-kicker">Breadth scan</div>
+            <h2 class="panel-title">Liquidity Heatmap</h2>
+          </div>
+        </div>
+        <div class="heatmap-grid">${heatmapTiles || '<div style="padding:16px;color:var(--on-surface-variant);font-size:13px;">Sector data unavailable</div>'}</div>
+      </article>
+    </section>
+
+    <section class="grid-12">
+      <article class="panel split-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-kicker">Narrative monitor</div>
+            <h2 class="panel-title">Strengthening vs Weakening Trends</h2>
+            <p class="panel-subtitle">Not generic gainers and losers — only themes with some explanatory flow or catalyst backing.</p>
+          </div>
+          <div class="chip" style="background:rgba(255,255,255,0.04); border:1px solid rgba(140,144,159,0.16); color:var(--on-surface-variant);">Last 24h</div>
+        </div>
+        <div class="split-grid">
+          <div>
+            <div class="split-column-title green"><span class="pulse-dot green"></span>Strengthening</div>
+            <div class="trend-list">${strengthItems || '<div class="trend-item neutral"><div class="trend-name">No strong signals</div><div class="trend-note">Market in mixed regime</div></div>'}</div>
+          </div>
+          <div>
+            <div class="split-column-title red"><span class="pulse-dot red"></span>Weakening</div>
+            <div class="trend-list">${weakenItems || '<div class="trend-item neutral"><div class="trend-name">No strong signals</div><div class="trend-note">Market in mixed regime</div></div>'}</div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="grid-12">
+      <article class="panel" style="grid-column: span 6;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-kicker">Curated catalyst layer</div>
+            <h2 class="panel-title">Impact Feed</h2>
+            <p class="panel-subtitle">A filtered event stream that explains where the dashboard believes second-order effects are likely to propagate.</p>
+          </div>
+        </div>
+        <div class="feed-list">${feedItems}</div>
+      </article>
+
+      <article class="panel" style="grid-column: span 6;">
+        <div class="panel-header">
+          <div>
+            <div class="panel-kicker">Quick scan</div>
+            <h2 class="panel-title">Watchlist</h2>
+          </div>
+        </div>
+        <div class="watchlist">${watchItems}</div>
+      </article>
     </section>
 
     <section class="recommendations-grid">
@@ -254,16 +615,6 @@ function renderDiscovery(data) {
           </table>
         </div>
       </article>
-
-      <article class="panel">
-        <div class="panel-header">
-          <div>
-            <div class="panel-kicker">Quick scan</div>
-            <h2 class="panel-title">Watchlist</h2>
-          </div>
-        </div>
-        <div class="watchlist">${watchItems}</div>
-      </article>
     </section>
   `;
 }
@@ -280,7 +631,77 @@ function initials(label) {
     .toUpperCase();
 }
 
-const FLOW_VENUES = ['Binance', 'Coinbase', 'OKX', 'Bybit', 'Hyperliquid', 'Kraken'];
+const FUNDING_VENUES: Record<string, string> = {
+  'BTC/USDT': 'Binance · OKX · Bybit',
+  'ETH/USDT': 'Binance · Bybit · Hyperliquid',
+  'SOL/USDT': 'Binance · Hyperliquid',
+  'BNB/USDT': 'Binance · Bybit',
+  'ARB/USDT': 'Binance · Arbitrum DEX',
+  'LINK/USDT': 'Binance · Bybit',
+  'AVAX/USDT': 'Binance only',
+};
+const TVL_VENUES: Record<string, string> = {
+  'Arbitrum': 'LayerZero ·bridge',
+  'Base': 'Coinbase · LayerZero',
+  'Solana': 'Wormhole',
+  'Ethereum': 'native bridge',
+  'Optimism': 'Across · Optimism',
+};
+
+function renderFundingRows(rates: any[]): string {
+  if (!rates || rates.length === 0) {
+    return '<p style="color:var(--on-surface-variant);font-size:13px">Funding data unavailable.</p>';
+  }
+  return rates.map(item => {
+    const pair = item.symbol || '—';
+    const venues = FUNDING_VENUES[pair] || 'Cross-venue';
+    const rate = Number(item.rate || 0);
+    const tone = rate >= 0 ? 'green' : 'red';
+    const meta = item.meta || (item.price ? `${formatCurrency(item.price)} · ${formatSignedPercent(item.change_pct)} 24h` : '—');
+    const nextFunding = item.next_funding ? `Next: ${item.next_funding}` : '';
+    return `
+      <div class="funding-row" style="color:var(--${tone === 'green' ? 'secondary' : 'tertiary'})">
+        <div>
+          <div class="funding-name">${escapeHtml(pair)}</div>
+          <div class="venue-chip">${escapeHtml(venues)}</div>
+        </div>
+        <div class="funding-right">
+          <div class="funding-rate">${rate >= 0 ? '+' : ''}${(rate * 100).toFixed(4)}%</div>
+          <div class="funding-meta">${escapeHtml(meta)}</div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderTvlRows(chains: any[]): string {
+  if (!chains || chains.length === 0) {
+    return '<p style="color:var(--on-surface-variant);font-size:13px">TVL data unavailable.</p>';
+  }
+  // Normalize: find max TVL for bar scaling
+  const maxTvl = Math.max(...chains.map(c => Number(c.tvl || 0)), 1);
+  return chains.map(item => {
+    const name = item.name || '—';
+    const venues = TVL_VENUES[name] || 'bridge';
+    const tvl = Number(item.tvl || 0);
+    const change = Number(item.change_pct || 0);
+    const pct = ((tvl / maxTvl) * 100).toFixed(1);
+    const changeColor = change >= 0 ? 'green' : 'red';
+    return `
+      <div class="tvl-row">
+        <div class="tvl-name">${escapeHtml(name)}</div>
+        <div class="venue-chip">${escapeHtml(venues)}</div>
+        <div class="tvl-bar-cell">
+          <div class="tvl-bar-pct ${changeColor}">${change >= 0 ? '+' : ''}${change.toFixed(2)}%</div>
+          <div class="mini-bar">
+            <div class="mini-bar-fill ${change >= 0 ? 'in' : 'out'}" style="width:${pct}%"></div>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
 
 function deriveCrossVenueFlows(fundingRates = []) {
   const defaults = [
@@ -461,54 +882,47 @@ function renderFlows(data) {
   const bridgeRows = deriveBridgeFlows(data.tvl || []);
   const liquidityRows = deriveLiquiditySnapshotRows(data.funding_rates || [], data.depth || {});
 
-  const fundingRows = (data.funding_rates || [])
-    .map(
-      (item) => `
-        <tr>
-          <td><strong>${escapeHtml(item.symbol)}</strong></td>
-          <td>${formatCurrency(item.price)}</td>
-          <td class="${item.change_pct >= 0 ? 'green' : 'red'}">${formatSignedPercent(item.change_pct)}</td>
-          <td class="${(item.rate || 0) >= 0 ? 'green' : 'red'}">${Number(item.rate || 0).toFixed(5)}</td>
-        </tr>
-      `,
-    )
-    .join('');
+  const fundingRows = renderFundingRows(data.funding_rates || []);
+  const tvlRows = renderTvlRows(data.tvl || []);
 
-  const tvlRows = (data.tvl || [])
-    .map(
-      (item) => `
-        <tr>
-          <td><strong>${escapeHtml(item.name)}</strong></td>
-          <td>${formatCompactNumber(item.tvl)}</td>
-          <td class="${item.change_pct >= 0 ? 'green' : 'red'}">${formatSignedPercent(item.change_pct)}</td>
-        </tr>
-      `,
-    )
-    .join('');
-
-  const renderCrossFlowItem = (row) => `
-    <div class="cross-flow-item">
-      <div class="flow-badge ${row.direction === 'in' ? 'in' : 'out'}">${escapeHtml(initials(row.venue))}</div>
-      <div>
-        <div class="flow-pair">${escapeHtml(row.venue)}</div>
-        <div class="flow-vol">${escapeHtml(row.meta)} · ${escapeHtml(row.pair)}</div>
-      </div>
-      <div class="flow-amount ${row.direction === 'in' ? 'green' : 'red'}">${row.direction === 'in' ? '+' : '-'}$${formatCompactNumber(row.magnitude_usd)}</div>
-    </div>
+  const renderCrossFlowRow = (row) => `
+    <tr>
+      <td>
+        <div class="flow-venue-cell">
+          <div class="flow-badge ${row.direction === 'in' ? 'in' : 'out'}">${escapeHtml(initials(row.venue))}</div>
+          <div>
+            <div class="flow-venue-name">${escapeHtml(row.venue)}</div>
+            <div class="flow-venue-meta">${escapeHtml(row.pair)}</div>
+          </div>
+        </div>
+      </td>
+      <td class="muted" style="font-size:12px">${escapeHtml(row.meta)}</td>
+      <td class="numeric">
+        <div class="flow-amount-cell">
+          <div class="flow-amount-val ${row.direction === 'in' ? 'green' : 'red'}">${row.direction === 'in' ? '+' : '-'}$${formatCompactNumber(row.magnitude_usd)}</div>
+        </div>
+      </td>
+    </tr>
   `;
 
-  const renderBridgeItem = (row) => `
-    <div class="cross-flow-item">
-      <div class="flow-badge ${row.direction === 'in' ? 'in' : 'out'}">${escapeHtml(initials(row.name))}</div>
-      <div>
-        <div class="flow-pair">${escapeHtml(row.name)}</div>
-        <div class="flow-vol">${escapeHtml(row.note)}</div>
-      </div>
-      <div style="text-align:right">
-        <div class="flow-amount ${row.direction === 'in' ? 'green' : 'red'}">${row.direction === 'in' ? '+' : '-'}${formatCompactNumber(row.eth_equivalent)}</div>
-        <div class="flow-unit">ETH equiv.</div>
-      </div>
-    </div>
+  const renderBridgeRow = (row) => `
+    <tr>
+      <td>
+        <div class="flow-venue-cell">
+          <div class="flow-badge ${row.direction === 'in' ? 'in' : 'out'}">${escapeHtml(initials(row.name))}</div>
+          <div>
+            <div class="flow-venue-name">${escapeHtml(row.name)}</div>
+          </div>
+        </div>
+      </td>
+      <td class="muted" style="font-size:12px">${escapeHtml(row.note)}</td>
+      <td class="numeric">
+        <div class="flow-amount-cell">
+          <div class="flow-amount-val ${row.direction === 'in' ? 'green' : 'red'}">${row.direction === 'in' ? '+' : '-'}${formatCompactNumber(row.eth_equivalent)}</div>
+          <div class="flow-amount-unit">ETH equiv.</div>
+        </div>
+      </td>
+    </tr>
   `;
 
   return `
@@ -529,28 +943,15 @@ function renderFlows(data) {
           <div>
             <div class="panel-kicker">Execution layer</div>
             <h2 class="panel-title">Orderbook Depth</h2>
-            <p class="panel-subtitle">Top-of-book spread and near-book sizing for the selected perpetual pair.</p>
+            <p class="panel-subtitle">Aggregated bid-ask depth across major venues. Green = bid side accumulation, Red = ask side distribution.</p>
           </div>
-          <div class="chip">Source: ${escapeHtml(data.sources?.orderbook || 'fallback')}</div>
+          <div class="depth-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:var(--secondary)"></div>Bids</div>
+            <div class="legend-item"><div class="legend-dot" style="background:var(--tertiary)"></div>Asks</div>
+          </div>
         </div>
-        <div class="split-grid">
-          <div class="status-card"><strong>Best bid:</strong> ${formatCurrency(bestBid[0])} | <strong>Size:</strong> ${bestBid[1]}</div>
-          <div class="status-card"><strong>Best ask:</strong> ${formatCurrency(bestAsk[0])} | <strong>Size:</strong> ${bestAsk[1]}</div>
-        </div>
-        <div class="table-scroll" style="margin-top:16px;">
-          <table>
-            <thead><tr><th>Bid Price</th><th>Bid Size</th><th>Ask Price</th><th>Ask Size</th></tr></thead>
-            <tbody>
-              ${(data.depth?.bids || []).slice(0, 5).map((bid, index) => `
-                <tr>
-                  <td>${formatCurrency(bid[0])}</td>
-                  <td>${bid[1]}</td>
-                  <td>${formatCurrency((data.depth?.asks || [])[index]?.[0] || 0)}</td>
-                  <td>${(data.depth?.asks || [])[index]?.[1] || 0}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
+        <div class="hero-surface">
+          ${renderDepthChart(data)}
         </div>
       </article>
 
@@ -558,18 +959,14 @@ function renderFlows(data) {
         <article class="panel">
           <div class="panel-header">
             <div>
-              <div class="panel-kicker">Perpetuals</div>
+              <div class="panel-kicker">Perpetual basis</div>
               <h2 class="panel-title">Funding Rates</h2>
             </div>
             <div class="chip">Source: ${escapeHtml(data.sources?.funding || 'fallback')}</div>
           </div>
-          <div class="table-scroll">
-            <table class="recommendation-table">
-              <thead><tr><th>Pair</th><th>Price</th><th>24h</th><th>Funding</th></tr></thead>
-              <tbody>${fundingRows}</tbody>
-            </table>
-          </div>
+          <div class="funding-list">${fundingRows}</div>
         </article>
+
 
         <article class="panel">
           <div class="panel-header">
@@ -579,12 +976,7 @@ function renderFlows(data) {
             </div>
             <div class="chip">Source: ${escapeHtml(data.sources?.tvl || 'fallback')}</div>
           </div>
-          <div class="table-scroll">
-            <table>
-              <thead><tr><th>Chain</th><th>TVL</th><th>Change</th></tr></thead>
-              <tbody>${tvlRows}</tbody>
-            </table>
-          </div>
+          <div class="tvl-list">${tvlRows}</div>
         </article>
       </div>
     </section>
@@ -599,14 +991,24 @@ function renderFlows(data) {
           </div>
           <div class="chip">Derived · ${escapeHtml(data.sources?.funding || 'fallback')}</div>
         </div>
-        <div class="cross-flow-grid">
-          <div>
-            <div class="split-col-title green"><span class="pulse-dot"></span>Inflows</div>
-            <div class="cross-flow-list">${venueFlows.inflows.map(renderCrossFlowItem).join('')}</div>
+        <div class="cross-flows-section">
+          <div class="cross-flows-col">
+            <div class="cross-flows-col-title green"><span class="pulse-dot"></span>Inflows</div>
+            <div class="table-scroll">
+              <table class="flow-table">
+                <thead><tr><th>Venue</th><th>Source</th><th style="text-align:right">Net Flow</th></tr></thead>
+                <tbody>${venueFlows.inflows.map(renderCrossFlowRow).join('')}</tbody>
+              </table>
+            </div>
           </div>
-          <div>
-            <div class="split-col-title red"><span class="pulse-dot"></span>Outflows</div>
-            <div class="cross-flow-list">${venueFlows.outflows.map(renderCrossFlowItem).join('')}</div>
+          <div class="cross-flows-col">
+            <div class="cross-flows-col-title red"><span class="pulse-dot"></span>Outflows</div>
+            <div class="table-scroll">
+              <table class="flow-table">
+                <thead><tr><th>Venue</th><th>Source</th><th style="text-align:right">Net Flow</th></tr></thead>
+                <tbody>${venueFlows.outflows.map(renderCrossFlowRow).join('')}</tbody>
+              </table>
+            </div>
           </div>
         </div>
       </article>
@@ -620,7 +1022,12 @@ function renderFlows(data) {
           </div>
           <div class="chip">Derived · ${escapeHtml(data.sources?.tvl || 'fallback')}</div>
         </div>
-        <div class="cross-flow-list">${bridgeRows.map(renderBridgeItem).join('')}</div>
+        <div class="table-scroll">
+          <table class="flow-table bridge-flow-table">
+            <thead><tr><th>Chain</th><th>Context</th><th>Net Bridge Flow</th></tr></thead>
+            <tbody>${bridgeRows.map(renderBridgeRow).join('')}</tbody>
+          </table>
+        </div>
       </article>
     </section>
 
@@ -668,6 +1075,17 @@ function renderFlows(data) {
 }
 
 function renderImpacts(data) {
+  const transmission = data.transmission_chain || [];
+  const origins = transmission.filter(t => t.order === 'origin');
+  const firstOrder = transmission.filter(t => t.order === 'first');
+  const secondOrder = transmission.filter(t => t.order === 'second' || t.order === 'lagged');
+  const centerCatalyst = data.center_catalyst || { title: 'Market Catalyst', headline: 'Macro regime shift', body: 'Key macro drivers are propagating through cross-asset channels.' };
+  const affected = secondOrder.slice(0, 3);
+
+  const tagClass = (tone) => tone === 'bullish' ? 'tag-green' : tone === 'bearish' ? 'tag-red' : 'tag-blue';
+  const originDot = (tone) => tone === 'bullish' ? 'green-node' : tone === 'bearish' ? 'red-node' : '';
+  const nodeClass = (tone) => tone === 'bullish' ? 'green-node' : tone === 'bearish' ? 'red-node' : '';
+
   return `
     <section class="hero-row">
       <div>
@@ -676,38 +1094,127 @@ function renderImpacts(data) {
       </div>
     </section>
     ${renderMetrics(data.metrics)}
-    <section class="split-grid">
-      <article class="panel">
-        <div class="panel-header"><div><div class="panel-kicker">Transmission chain</div><h2 class="panel-title">Macro to Market</h2></div></div>
-        <div class="simple-list">${(data.transmission_chain || []).map((item) => `
-          <div class="simple-item">
-            <div class="simple-item-head"><div class="simple-item-title">${escapeHtml(item.from)} → ${escapeHtml(item.to)}</div><div class="badge-pill ${toneClass(item.tone)}">${escapeHtml(item.tone)}</div></div>
-            <div class="simple-item-sub">${escapeHtml(item.note)}</div>
+    <section class="grid-12">
+      <article class="panel hero-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-kicker">Propagation map</div>
+            <h2 class="panel-title">Transmission Chain</h2>
+            <p class="panel-subtitle">How the dominant catalyst propagates: origin → first-order assets → second-order sectors → lagged beneficiaries.</p>
           </div>
-        `).join('')}</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <span class="tag tag-blue">▲ 1st Order</span>
+            <span class="tag tag-yellow">◑ 2nd Order</span>
+            <span class="tag" style="background:rgba(255,200,77,0.06);color:#8c909f;border-color:rgba(140,144,159,0.18)">◔ Lagged</span>
+          </div>
+        </div>
+        <div class="hero-surface">
+          <div class="impact-map">
+            <div class="map-row">
+              ${origins.slice(0, 3).map(item => `
+                <div class="origin-node">
+                  <div class="origin-circle ${originDot(item.tone)}">${escapeHtml(item.from || item.asset || '—')}</div>
+                  <div class="origin-label">${escapeHtml(item.label || item.note || '')}</div>
+                </div>
+              `).join('')}
+              ${origins.length < 3 ? Array(3 - origins.length).fill('<div class="origin-node"><div class="origin-circle" style="background:rgba(140,144,159,0.08);border-color:rgba(140,144,159,0.18);color:var(--on-surface-variant)">—</div><div class="origin-label">Pending</div></div>').join('') : ''}
+            </div>
+
+            <div class="first-order-row">
+              ${firstOrder.slice(0, 3).map((item, i) => `
+                <div class="order-node">
+                  <div class="order-circle ${nodeClass(item.tone)}">${escapeHtml(item.to || item.asset || '—')}</div>
+                  <div class="order-label">${escapeHtml(item.note || item.label || '')}</div>
+                </div>
+              `).join('')}
+              ${firstOrder.length < 3 ? Array(3 - firstOrder.length).fill('<div class="order-node"><div class="order-circle" style="background:rgba(140,144,159,0.08);border-color:rgba(140,144,159,0.18);color:var(--on-surface-variant)">—</div><div class="order-label">Pending</div></div>').join('') : ''}
+            </div>
+
+            <svg class="map-svg" viewBox="0 0 1000 760" preserveAspectRatio="none" aria-hidden="true">
+              ${origins.slice(0, 3).map((_, i) => {
+                const xStart = [333, 500, 667][i];
+                const xEnd = 500;
+                const yStart = 67;
+                const yEnd = 245;
+                return `<path style="animation-duration:${7 + i}s" d='M${xStart} ${yStart} C ${xStart} 145, ${xEnd} 185, ${xEnd} ${yEnd}' stroke='rgba(173,198,255,0.50)'></path>`;
+              }).join('')}
+              ${firstOrder.slice(0, 3).map((_, i) => {
+                const xStart = [333, 500, 667][i];
+                const xEnd = 500;
+                return `<path style="animation-duration:${8 + i}s" d='M${xStart} 245 C ${xStart} 310, ${xEnd} 340, ${xEnd} 405' stroke='rgba(255,200,77,0.40)'></path>`;
+              }).join('')}
+              ${secondOrder.slice(0, 3).map((_, i) => {
+                const xStart = [333, 500, 667][i];
+                const xEnd = 500;
+                return `<path style="animation-duration:${9 + i}s" d='M${xStart} 405 C ${xStart} 470, ${xEnd} 500, ${xEnd} 570' stroke='rgba(173,198,255,0.40)'></path>`;
+              }).join('')}
+            </svg>
+
+            <div class="second-order-row">
+              ${secondOrder.slice(0, 3).map((item, i) => `
+                <div class="order-node second-order">
+                  <div class="order-circle ${nodeClass(item.tone)}">${escapeHtml(item.to || item.asset || '—')}</div>
+                  <div class="order-label">${escapeHtml(item.note || item.label || '')}</div>
+                </div>
+              `).join('')}
+              ${secondOrder.length < 3 ? Array(3 - secondOrder.length).fill('<div class="order-node second-order"><div class="order-circle" style="background:rgba(140,144,159,0.08);border-color:rgba(140,144,159,0.18);color:var(--on-surface-variant)">—</div><div class="order-label">Pending</div></div>').join('') : ''}
+            </div>
+
+            <div class="transmission-center">
+              <div class="trans-title">${escapeHtml(centerCatalyst.title)}</div>
+              <div class="trans-headline">${escapeHtml(centerCatalyst.headline)}</div>
+              <div class="trans-body">${escapeHtml(centerCatalyst.body)}</div>
+              ${centerCatalyst.lag ? `<div style="margin-top:10px;display:flex;gap:8px;justify-content:center"><span class="tag tag-yellow">${escapeHtml(centerCatalyst.lag)}</span>${centerCatalyst.confidence ? `<span class="tag tag-green">${escapeHtml(centerCatalyst.confidence)}</span>` : ''}</div>` : ''}
+            </div>
+
+            <div class="affected-row">
+              ${affected.map(item => `
+                <div class="affected-card">
+                  <div class="affected-head">
+                    <div class="affected-name">${escapeHtml(item.to || item.asset || '—')}</div>
+                    <span class="tag ${tagClass(item.tone)}">${item.order === 'origin' || item.order === 'first' ? '1st Order' : item.order === 'second' ? '2nd Order' : 'Lagged'}</span>
+                  </div>
+                  <div class="affected-desc">${escapeHtml(item.note || item.description || '')}</div>
+                  ${item.confidence ? `<div class="progress" style="margin-top:8px"><span style="width:${item.confidence}%;color:var(--primary)"></span></div>` : ''}
+                </div>
+              `).join('')}
+              ${affected.length < 3 ? Array(3 - affected.length).fill('<div class="affected-card"><div class="affected-head"><div class="affected-name">—</div></div><div class="affected-desc">Awaiting signal</div></div>').join('') : ''}
+            </div>
+          </div>
+        </div>
       </article>
-      <article class="panel">
-        <div class="panel-header"><div><div class="panel-kicker">Sensitivity matrix</div><h2 class="panel-title">Rate Exposure</h2></div></div>
-        <table>
-          <thead><tr><th>Bucket</th><th>Sensitivity</th><th>Bias</th></tr></thead>
-          <tbody>${(data.rate_matrix || []).map((row) => `<tr><td>${escapeHtml(row.bucket)}</td><td>${escapeHtml(row.sensitivity)}</td><td>${escapeHtml(row.bias)}</td></tr>`).join('')}</tbody>
-        </table>
-      </article>
+
+      <div class="stack-panel">
+        <article class="panel">
+          <div class="panel-header"><div><div class="panel-kicker">Transmission chain</div><h2 class="panel-title">Macro to Market</h2></div></div>
+          <div class="simple-list">${(data.transmission_chain || []).slice(0, 6).map((item) => `
+            <div class="simple-item">
+              <div class="simple-item-head"><div class="simple-item-title">${escapeHtml(item.from || item.asset || '—')} → ${escapeHtml(item.to || '—')}</div><div class="badge-pill ${tagClass(item.tone)}">${escapeHtml(item.tone || 'neutral')}</div></div>
+              <div class="simple-item-sub">${escapeHtml(item.note || item.description || '')}</div>
+            </div>
+          `).join('')}</div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-header"><div><div class="panel-kicker">Sensitivity matrix</div><h2 class="panel-title">Rate Exposure</h2></div></div>
+          <table>
+            <thead><tr><th>Bucket</th><th>Sensitivity</th><th>Bias</th></tr></thead>
+            <tbody>${(data.rate_matrix || []).map((row) => `<tr><td>${escapeHtml(row.bucket)}</td><td>${escapeHtml(row.sensitivity)}</td><td class="${row.bias === 'Positive' ? 'green' : row.bias === 'Negative' ? 'red' : ''}">${escapeHtml(row.bias)}</td></tr>`).join('')}</tbody>
+          </table>
+        </article>
+      </div>
     </section>
     <section class="split-grid">
       <article class="panel">
         <div class="panel-header"><div><div class="panel-kicker">Correlations</div><h2 class="panel-title">Cross-Asset Matrix</h2></div></div>
-        <table>
-          <thead><tr><th>Pair</th><th>Correlation</th></tr></thead>
-          <tbody>${(data.correlation_matrix || []).map((row) => `<tr><td>${escapeHtml(row.pair)}</td><td>${row.value}</td></tr>`).join('')}</tbody>
-        </table>
+        ${renderCorrelationHeatmap(data.correlation_matrix || [])}
       </article>
       <article class="panel">
         <div class="panel-header"><div><div class="panel-kicker">Recent events</div><h2 class="panel-title">Transmission Notes</h2></div></div>
         <div class="simple-list">${(data.events || []).map((item) => `
           <div class="simple-item">
-            <div class="simple-item-head"><div class="simple-item-title">${escapeHtml(item.title)}</div><div class="badge-pill ${toneClass(item.tone)}">${escapeHtml(item.tone)}</div></div>
-            <div class="simple-item-sub">${escapeHtml(item.impact)}</div>
+            <div class="simple-item-head"><div class="simple-item-title">${escapeHtml(item.title)}</div><div class="badge-pill ${tagClass(item.tone)}">${escapeHtml(item.tone)}</div></div>
+            <div class="simple-item-sub">${escapeHtml(item.impact || '')}</div>
           </div>
         `).join('')}</div>
       </article>
@@ -724,28 +1231,26 @@ function renderTrends(data) {
       </div>
     </section>
     ${renderMetrics(data.metrics)}
-    <section class="split-grid">
-      <article class="panel">
-        <div class="panel-header"><div><div class="panel-kicker">Anomalies</div><h2 class="panel-title">Positioning Outliers</h2></div></div>
-        <div class="simple-list">${(data.anomalies || []).map((item) => `
-          <div class="simple-item">
-            <div class="simple-item-head"><div class="simple-item-title">${escapeHtml(item.asset)}</div><div class="badge-pill blue">${Math.round(item.confidence * 100)}%</div></div>
-            <div class="simple-item-sub">${escapeHtml(item.signal)}</div>
+    <section>
+      <article class="panel full-panel">
+        <div class="panel-header">
+          <div>
+            <div class="panel-kicker">Trend cards</div>
+            <h2 class="panel-title">Emerging Narratives</h2>
           </div>
-        `).join('')}</div>
-      </article>
-      <article class="panel">
-        <div class="panel-header"><div><div class="panel-kicker">Trend cards</div><h2 class="panel-title">Emerging Narratives</h2></div></div>
-        <div class="idea-grid">${(data.trend_cards || []).map((item) => `
-          <div class="idea-card">
-            <div class="idea-card-header">
+          <span class="tag tag-blue">${(data.trend_cards || []).length} Active</span>
+        </div>
+        <div class="trend-cards-grid emerging-grid">${(data.trend_cards || []).map((item) => `
+          <div class="trend-card">
+            <div class="trend-card-header">
               <div>
-                <div class="idea-ticker">${escapeHtml(item.name)}</div>
-                <div class="idea-name">Stage: ${escapeHtml(item.stage)}</div>
+                <div class="trend-ticker">${escapeHtml(item.name)}</div>
+                <div class="trend-stage">Stage: ${escapeHtml(item.stage || 'Developing')}</div>
               </div>
               <div class="badge-pill ${item.confidence >= 65 ? 'green' : item.confidence < 55 ? 'red' : 'blue'}">${item.confidence}%</div>
             </div>
-            <div class="idea-thesis">${(item.evidence || []).map((evidence) => `• ${escapeHtml(evidence)}`).join('<br>')}</div>
+            <div class="trend-thesis">${(item.evidence || []).map(e => `<p>• ${escapeHtml(e)}</p>`).join('')}</div>
+            ${item.stats ? `<div class="trend-stats">${Object.entries(item.stats).map(([k, v]) => `<div class="trend-stat"><span class="trend-stat-label">${escapeHtml(k)}</span><span class="trend-stat-value">${escapeHtml(String(v))}</span></div>`).join('')}</div>` : ''}
           </div>
         `).join('')}</div>
       </article>
@@ -753,25 +1258,85 @@ function renderTrends(data) {
   `;
 }
 
-function renderIdeas(data) {
-  const ideaCards = (data.ideas || []).map((idea) => `
-    <div class="idea-card">
-      <div class="idea-card-header">
-        <div>
-          <div class="idea-ticker">${escapeHtml(idea.ticker)}</div>
-          <div class="idea-name">${escapeHtml(idea.name)} · ${escapeHtml(idea.theme)}</div>
+const IDEAS_TABS = ['All', 'DeFi', 'Macro', 'Sector', 'Narrative'];
+
+const SCORING_CRITERIA = [
+  { key: 'Momentum',    label: 'Momentum threshold', val: '≥ 1.5% daily change' },
+  { key: 'Liquidity',   label: 'Liquidity filter',    val: '≥ $50M 24h volume' },
+  { key: 'Signal',      label: 'Signal strength',     val: 'VIX-adjusted regime' },
+  { key: 'Theme',       label: 'Theme alignment',     val: 'Top flow leader' },
+  { key: 'Conviction',  label: 'Conviction bands',    val: 'High / Med / Watch' },
+  { key: 'Risk',        label: 'Risk labels',         val: 'Low · Med · High' },
+];
+function riskDot(risk: string) {
+  const cls = risk === 'Low' ? 'low' : risk === 'High' ? 'high' : 'med';
+  return `<span class="risk-dot ${cls}"></span>`;
+}
+function ideaFilter(ideas: any[], tab: string): any[] {
+  if (tab === 'All') return ideas;
+  return ideas.filter(i => i.theme?.toLowerCase().includes(tab.toLowerCase()));
+}
+function renderIdeaCards(ideas: any[]): string {
+  if (!ideas || ideas.length === 0) {
+    return '<p style="color:var(--on-surface-variant);font-size:13px">No ideas in this category.</p>';
+  }
+  return ideas.map((idea) => {
+    const convictionColor = idea.conviction === 'High' ? 'green' : idea.conviction === 'Watch' ? 'red' : 'blue';
+    const riskLevel = idea.risk || 'Med';
+    const riskColor = riskLevel === 'Low' ? 'green' : riskLevel === 'High' ? 'red' : 'var(--primary)';
+    const signalBadgeColor = idea.signal === 'Momentum improving' ? 'green' : idea.signal === 'Needs reset' ? 'red' : 'blue';
+    return `
+      <div class="idea-card">
+        <div class="idea-card-header">
+          <div>
+            <div class="idea-ticker">${escapeHtml(idea.ticker)}</div>
+            <div class="idea-name">${escapeHtml(idea.name || idea.ticker)} · ${escapeHtml(idea.theme || 'General')}</div>
+          </div>
+          <div class="badge-pill ${convictionColor}">${escapeHtml(idea.conviction)}</div>
         </div>
-        <div class="badge-pill ${idea.conviction === 'High' ? 'green' : idea.conviction === 'Watch' ? 'red' : 'blue'}">${escapeHtml(idea.conviction)}</div>
+        <div class="idea-meta-grid">
+          <div class="idea-meta-cell">
+            <div class="idea-meta-key">Signal</div>
+            <div class="badge-pill ${signalBadgeColor}" style="font-size:10px;padding:3px 7px">${escapeHtml(idea.signal || '—')}</div>
+          </div>
+          <div class="idea-meta-cell">
+            <div class="idea-meta-key">Entry</div>
+            <div class="idea-meta-val">${escapeHtml(idea.entry || '—')}</div>
+          </div>
+          <div class="idea-meta-cell">
+            <div class="idea-meta-key">Horizon</div>
+            <div class="idea-meta-val">${escapeHtml(idea.horizon || '—')}</div>
+          </div>
+          <div class="idea-meta-cell">
+            <div class="idea-meta-key">Risk</div>
+            <div class="idea-meta-val risk-label" style="color:${riskColor}">${riskDot(riskLevel)}${escapeHtml(riskLevel)}</div>
+          </div>
+        </div>
+        <div class="idea-thesis">
+          ${idea.price != null ? formatCurrency(idea.price) : '—'} ·
+          <span class="${idea.change_pct >= 0 ? 'green' : 'red'}">${formatSignedPercent(idea.change_pct)}</span>
+        </div>
       </div>
-      <div class="idea-meta">
-        <div class="badge-pill blue">${escapeHtml(idea.signal)}</div>
-        <div class="badge-pill blue">${escapeHtml(idea.entry)}</div>
-        <div class="badge-pill blue">${escapeHtml(idea.horizon)}</div>
-      </div>
-      <div class="idea-thesis">${formatCurrency(idea.price)} · <span class="${idea.change_pct >= 0 ? 'green' : 'red'}">${formatSignedPercent(idea.change_pct)}</span></div>
+    `;
+  }).join('');
+}
+function renderScoringPanel(): string {
+  const riskRows = SCORING_CRITERIA.map(c => `
+    <div class="criteria-item">
+      <div class="criteria-key">${escapeHtml(c.label)}</div>
+      <div class="criteria-val">${escapeHtml(c.val)}</div>
     </div>
   `).join('');
+  return `
+    <div class="scoring-panel">
+      <div class="scoring-title">Scoring Criteria</div>
+      <div class="criteria-list">${riskRows}</div>
+    </div>
+  `;
+}
 
+function renderIdeas(data) {
+  const ideas = data.ideas || [];
   const watchlist = (data.watchlist || []).map((item) => `
     <div class="watch-item">
       <div class="watch-left">
@@ -785,6 +1350,14 @@ function renderIdeas(data) {
     </div>
   `).join('');
 
+  const tabBar = IDEAS_TABS.map(tab => {
+    const count = tab === 'All' ? ideas.length : ideas.filter(i => i.theme?.toLowerCase().includes(tab.toLowerCase())).length;
+    return `<button class="ideas-tab" data-tab="${tab}" data-count="${count}">${tab} <span style="opacity:0.6;font-size:10px">${count}</span></button>`;
+  }).join('');
+
+  const ideaCards = renderIdeaCards(ideas);
+  const scoringPanel = renderScoringPanel();
+
   return `
     <section class="hero-row">
       <div>
@@ -793,13 +1366,22 @@ function renderIdeas(data) {
       </div>
     </section>
     ${renderMetrics(data.metrics)}
-    <section class="split-grid">
+    <section class="ideas-split">
       <article class="panel">
         <div class="panel-header"><div><div class="panel-kicker">Actionable names</div><h2 class="panel-title">Idea Cards</h2></div></div>
+        <div class="ideas-tab-bar">${tabBar}</div>
         <div class="idea-grid">${ideaCards}</div>
       </article>
+      ${scoringPanel}
+    </section>
+    <section>
       <article class="panel">
-        <div class="panel-header"><div><div class="panel-kicker">Secondary signals</div><h2 class="panel-title">Watchlist</h2></div></div>
+        <div class="panel-header">
+          <div>
+            <div class="panel-kicker">Secondary signals</div>
+            <h2 class="panel-title">Watchlist</h2>
+          </div>
+        </div>
         <div class="watchlist">${watchlist}</div>
       </article>
     </section>
@@ -854,6 +1436,29 @@ function render() {
     : `${state.error ? renderError(state.error) : ''}${renderContent(route, data)}`;
 
   appEl.innerHTML = `
+    <div class="mobile-nav" data-nav="drawer">
+      <div class="mobile-nav-panel">
+        <div class="mobile-nav-header">
+          <div class="sidebar-kicker">Navigation</div>
+          <button class="hamburger-btn" data-action="menu" aria-label="Close menu" style="color:var(--on-surface-variant);">✕</button>
+        </div>
+        <nav class="mobile-nav-links">
+          ${NAV_ITEMS.map(
+            (item) => `
+              <a class="mobile-nav-link ${item.id === state.route ? 'active' : ''}" href="${item.hash}" data-nav="link">
+                <span class="side-icon">${item.short}</span>
+                <span>${item.label}</span>
+              </a>
+            `,
+          ).join('')}
+        </nav>
+        <div class="mobile-nav-footer">
+          <button class="button-primary" data-action="refresh" ${state.isRefreshing ? 'disabled' : ''} style="width:100%">
+            ${state.isRefreshing ? 'Refreshing…' : 'Refresh signals'}
+          </button>
+        </div>
+      </div>
+    </div>
     <div class="app-shell">
       ${renderSidebar(route)}
       ${renderTopbar(route, data)}
@@ -942,6 +1547,39 @@ function bindEvents() {
     const refreshButton = event.target.closest('[data-action="refresh"]');
     if (refreshButton) {
       refreshAll();
+    }
+
+    // Mobile menu toggle
+    const menuBtn = event.target.closest('[data-action="menu"]');
+    if (menuBtn) {
+      const drawer = document.querySelector('.mobile-nav');
+      drawer.classList.toggle('open');
+      return;
+    }
+
+    // Close drawer when clicking the overlay (not the panel)
+    const drawer = event.target.closest('.mobile-nav');
+    if (drawer && !event.target.closest('.mobile-nav-panel')) {
+      drawer.classList.remove('open');
+    }
+
+    // Close drawer on nav link click
+    const navLink = event.target.closest('[data-nav="link"]');
+    if (navLink) {
+      const d = document.querySelector('.mobile-nav');
+      if (d) d.classList.remove('open');
+    }
+
+
+    // Ideas tab filter
+    const ideasTab = event.target.closest('.ideas-tab');
+    if (ideasTab) {
+      state.ideasTab = ideasTab.dataset.tab;
+      document.querySelectorAll('.ideas-tab').forEach(t => t.classList.toggle('active', t.dataset.tab === state.ideasTab));
+      const data = state.cache.get('ideas') || {};
+      const filtered = ideaFilter(data.ideas || [], state.ideasTab);
+      const grid = document.querySelector('.ideas-split .idea-grid');
+      if (grid) grid.innerHTML = renderIdeaCards(filtered);
     }
   });
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime, timezone
+from statistics import correlation
 from typing import Any, Awaitable, Callable
 
 from fastapi import APIRouter
@@ -51,15 +52,6 @@ def _event_tone(change_pct: float, invert: bool = False) -> str:
     return "negative"
 
 
-def _correlation_proxy(series_a: float, series_b: float) -> float:
-    same_direction = (series_a >= 0 and series_b >= 0) or (series_a < 0 and series_b < 0)
-    if same_direction:
-        score = 0.30 + (min(abs(series_a), abs(series_b)) / 4) - (abs(series_a - series_b) / 12)
-    else:
-        score = -0.20 - ((abs(series_a) + abs(series_b)) / 8)
-    return round(max(-0.95, min(0.95, score)), 2)
-
-
 def _summary_source_from_inputs(inputs: dict[str, str]) -> str:
     return "live" if any(state == "live" for state in inputs.values()) else "unavailable"
 
@@ -69,6 +61,23 @@ async def _safe(call: Callable[[], Awaitable[dict[str, Any]]], fallback: dict[st
         return await asyncio.wait_for(call(), timeout=timeout), "live"
     except Exception:
         return fallback, "unavailable"
+
+
+def _price_returns(prices: list[float]) -> list[float]:
+    """Convert a list of prices to daily percentage returns."""
+    return [(prices[i] - prices[i - 1]) / abs(prices[i - 1]) * 100 for i in range(1, len(prices))]
+
+
+async def _fetch_returns(symbol: str, period: str = "1mo") -> list[float]:
+    """Fetch daily close prices and return daily % changes."""
+    try:
+        history = await yahoo.fetch_history(symbol, period=period, interval="1d")
+        if len(history) < 5:
+            return []
+        closes = [row["close"] for row in history if row.get("close") is not None]
+        return _price_returns(closes)
+    except Exception:
+        return []
 
 
 @router.get("/summary")
@@ -153,30 +162,48 @@ async def summary() -> dict[str, Any]:
 
     transmission_chain = [
         {
+            "order": "origin",
             "from": "Fed Policy",
             "to": "Rate Sensitivity",
             "note": f"10Y at {yield_level:.2f}% with {yield_change:+.2f}% daily move",
             "tone": _event_tone(yield_change, invert=True),
         },
         {
+            "order": "first",
             "from": "Rate Sensitivity",
             "to": "Equity Valuations",
             "note": f"XLK {xlk_change:+.2f}% vs XLU {xlu_change:+.2f}%",
             "tone": _event_tone(utilities_vs_software),
         },
         {
+            "order": "second",
             "from": "Equity Valuations",
             "to": "Credit Spreads",
             "note": f"HYG {hyg_change:+.2f}% and LQD {lqd_change:+.2f}% imply spread drift",
             "tone": _event_tone(credit_gap, invert=True),
         },
         {
+            "order": "lagged",
             "from": "Credit Spreads",
             "to": "Risk Appetite",
             "note": f"BTC {btc_change:+.2f}% with SPX {spx_change:+.2f}%",
             "tone": _event_tone((btc_change + spx_change) / 2),
         },
     ]
+
+    # Derive dominant catalyst headline from the strongest signal
+    dominant_tone = max(transmission_chain, key=lambda c: abs(yield_change) if c["order"] == "origin" else 0)
+    center_catalyst = {
+        "title": "Macro Catalyst",
+        "headline": "Rates driving cross-asset transmission",
+        "body": (
+            f"10Y at {yield_level:.2f}% is the primary driver. "
+            f"Equity sensitivity ({xlk_change:+.2f}% XLK vs {xlu_change:+.2f}% XLU) is propagating into credit spreads, "
+            f"with {abs(credit_gap):.2f}% HYG-LQD differential as the transmission indicator."
+        ),
+        "lag": "2–4h lag" if abs(credit_gap) >= 0.2 else "Monitor",
+        "confidence": "High confidence" if yield_level >= 4.2 else "Moderate",
+    }
 
     rate_matrix = [
         {"bucket": "Utilities", "sensitivity": "High", "bias": _bucket_bias(xlu_change)},
@@ -185,31 +212,67 @@ async def summary() -> dict[str, Any]:
         {"bucket": "Regional Banks", "sensitivity": "Medium", "bias": _bucket_bias(kre_change)},
     ]
 
+    # NxN correlation matrix — real Pearson from 1-month daily returns
+    asset_tickers = {
+        "SPX":  "^GSPC",
+        "BTC":  "BTC-USD",
+        "10Y":  "^TNX",
+        "DXY":  "DX-Y.NYB",
+        "Oil":  "BZ=F",
+        "XLE":  "XLE",
+    }
+    assets = list(asset_tickers.keys())
+
+    # Fetch all return series concurrently
+    returns_map: dict[str, list[float]] = {}
+    results = await asyncio.gather(
+        *[_fetch_returns(ticker, "1mo") for ticker in asset_tickers.values()]
+    )
+    for asset, rets in zip(assets, results):
+        returns_map[asset] = rets
+
+    def _corr(a: str, b: str) -> float:
+        ra = returns_map.get(a, [])
+        rb = returns_map.get(b, [])
+        if a == b or not ra or not rb or len(ra) < 3 or len(rb) < 3:
+            return 1.0 if a == b else 0.0
+        try:
+            n = min(len(ra), len(rb))
+            return round(correlation(ra[:n], rb[:n]), 2)
+        except Exception:
+            return 0.0
+
     correlation_matrix = [
-        {"pair": "SPX / BTC", "value": _correlation_proxy(spx_change, btc_change)},
-        {"pair": "SPX / 10Y", "value": _correlation_proxy(spx_change, -yield_change * 2)},
-        {"pair": "Oil / 10Y", "value": _correlation_proxy(oil_pressure, yield_change * 8)},
-        {"pair": "DXY / BTC", "value": _correlation_proxy(dollar_pressure * 2.5, -btc_change)},
+        {"pair": assets[i], "values": [_corr(assets[i], assets[j]) for j in range(len(assets))]}
+        for i in range(len(assets))
     ]
 
     events = [
         {
             "title": f"10Y yield at {yield_level:.2f}%",
+            "magnitude": f"{yield_change:+.2f}%",
+            "latency": "Confirmed",
             "impact": "Higher real rates pressure long-duration multiples when trend persists.",
             "tone": _event_tone(yield_change, invert=True),
         },
         {
             "title": f"Dollar index at {dxy_level:.2f}",
+            "magnitude": f"{dxy_level - 105:+.2f}",
+            "latency": "Confirmed",
             "impact": "Dollar strength can tighten global liquidity and weigh on risk assets.",
             "tone": "negative" if dxy_level >= 106 else "neutral",
         },
         {
             "title": f"Brent proxy at ${oil_level:.2f}",
+            "magnitude": f"${oil_level:.0f}",
+            "latency": "Watching",
             "impact": "Energy pressure can reprice inflation expectations and keep yields elevated.",
             "tone": "negative" if oil_level >= 85 else "neutral",
         },
         {
             "title": f"BTC moved {btc_change:+.2f}%",
+            "magnitude": f"{btc_change:+.2f}%",
+            "latency": "Confirmed",
             "impact": "Crypto beta remains a fast read on broad risk appetite.",
             "tone": _event_tone(btc_change),
         },
@@ -237,6 +300,7 @@ async def summary() -> dict[str, Any]:
         "source_counts": source_counts(sources),
         "metrics": metrics,
         "transmission_chain": transmission_chain,
+        "center_catalyst": center_catalyst,
         "rate_matrix": rate_matrix,
         "correlation_matrix": correlation_matrix,
         "events": events,
