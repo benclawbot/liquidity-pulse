@@ -40,7 +40,7 @@ class FakeTicker:
 
 @pytest.fixture
 def service(monkeypatch):
-    monkeypatch.setattr("backend.services.yahoo_finance.yf.Ticker", FakeTicker)
+    monkeypatch.setattr("_backend.services.yahoo_finance.yf.Ticker", FakeTicker)
     return YahooFinanceService()
 
 
@@ -84,7 +84,7 @@ async def test_missing_price_raises(monkeypatch):
         def __init__(self, symbol):
             self.fast_info = {"previousClose": 1.0}
 
-    monkeypatch.setattr("backend.services.yahoo_finance.yf.Ticker", BrokenTicker)
+    monkeypatch.setattr("_backend.services.yahoo_finance.yf.Ticker", BrokenTicker)
     service = YahooFinanceService()
     with pytest.raises(MissingDataError):
         await service.fetch_stock("BROKEN")

@@ -6,7 +6,7 @@ from _backend.services.crypto import CryptoService
 
 @pytest.fixture
 def service():
-    with patch("backend.services.crypto.ccxt.binance") as mock_binance:
+    with patch("_backend.services.crypto.ccxt.binance") as mock_binance:
         exchange = MagicMock()
         mock_binance.return_value = exchange
         yield CryptoService()
