@@ -16,12 +16,14 @@ export const ROUTE_TITLES = {
   settings: 'Settings',
 };
 
+export const API_BASE = 'https://liquidity-pulse-api.benclawbot.workers.dev';
+
 export const API_ENDPOINTS = {
-  discovery: '/api/market/snapshot',
-  flows: '/api/flows/dashboard',
-  impacts: '/api/impacts/summary',
-  trends: '/api/trends/summary',
-  ideas: '/api/ideas/summary',
+  discovery: `${API_BASE}/api/market/snapshot`,
+  flows: `${API_BASE}/api/flows/dashboard`,
+  impacts: `${API_BASE}/api/impacts/summary`,
+  trends: `${API_BASE}/api/trends/summary`,
+  ideas: `${API_BASE}/api/ideas/summary`,
 };
 
 export const TOPBAR_TABS = ['Discovery', 'Flows', 'Transmission', 'Recommendations'];
