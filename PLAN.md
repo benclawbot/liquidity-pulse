@@ -6,36 +6,12 @@
 - Impacts: correlation heatmap (colour-coded N×N grid)
 - Trends: correlation heatmap hero panel
 - Trends: trend cards with stats row
-
-## Still Todo
-
-### HIGH
-1. **Flows: Funding Rates mini progress bars + venue badges**
-   - Currently plain table rows
-   - Mockup: each row has a left-coloured border, venue chip, and mini progress bar showing relative rate size
-   - File: `renderFlows()` in `frontend/js/app.js`
-
-2. **Flows: TVL panels with mini progress bars + venue badges**
-   - Same pattern as Funding Rates — replace plain numbers with styled mini bars and venue chips
-
-### MEDIUM
-3. **Ideas: tab bar (5 filter tabs)**
-   - Mockup has: All / DeFi / Macro / Sector / Narrative filters
-   - Add above the ideas grid, with active state styling
-
-4. **Ideas: scoring criteria panel**
-   - Right-hand panel showing methodology, confidence thresholds, risk labels
-   - `renderIdeas()` needs a two-column layout split-grid
-
-5. **Ideas: idea card meta grid (4-col pills/tags)**
-   - Each idea card should show: sector tag, confidence badge, risk label, timeframe
-   - Currently rendered but minimal
-
-### LOW
-6. **Settings page** — placeholder, not critical
-
-### CSS cleanup (noted during implementation)
-- Some old classes (`.cross-flow-*`, `.chain-table`, `.pool-*`) were removed/replaced — verify nothing in `app.js` still references them
+- Flows: Funding Rates mini progress bars + venue badges
+- Flows: TVL panels with mini progress bars + venue badges
+- Ideas: tab bar (All / DeFi / Macro / Sector / Narrative filters)
+- Ideas: scoring criteria panel (methodology, confidence thresholds, risk labels)
+- Ideas: idea card meta grid (sector tag, confidence badge, risk label, timeframe)
+- Backend: fixed `_backend/` import paths, updated test patches, all 27 tests passing
 
 ## Mockup files
 - `/home/thomas/Dropbox/Projects/liquidity-pulse/liquidity-dashboard-mockup.html`

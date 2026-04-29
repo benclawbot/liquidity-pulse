@@ -1,0 +1,14 @@
+_backend/
+.venv/
+frontend/
+node_modules/
+.git/
+*.html
+*.json
+*.md
+PLAN.md
+ARCHITECTURE.md
+vercel.json
+render.yaml
+test.py
+test.toml

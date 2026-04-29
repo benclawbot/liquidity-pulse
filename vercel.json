@@ -3,7 +3,7 @@
   "cleanUrls": true,
   "trailingSlash": false,
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://challenges-undo-disposition-population.trycloudflare.com/api/$1" }
+    { "source": "/api/(.*)", "destination": "https://liquidity-pulse-api.benclawbot.workers.dev/api/$1" }
   ],
   "installCommand": "echo no-deps",
   "buildCommand": "echo no-build",
