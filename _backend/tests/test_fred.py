@@ -1,6 +1,6 @@
 import pytest
 
-from backend.services.fred import FredService, MissingDataError
+from _backend.services.fred import FredService, MissingDataError
 
 
 class FakeResponse:

@@ -6,9 +6,9 @@ from typing import Any
 
 from fastapi import APIRouter
 
-from backend.services.defillama import DEFAULT_CHAINS, DefiLlamaService
-from backend.services.yahoo_finance import YahooFinanceService
-from backend.utils.source_meta import aggregate_source_status, source_counts
+from _backend.services.defillama import DEFAULT_CHAINS, DefiLlamaService
+from _backend.services.yahoo_finance import YahooFinanceService
+from _backend.utils.source_meta import aggregate_source_status, source_counts
 
 router = APIRouter(prefix="/api/trends", tags=["trends"])
 yahoo = YahooFinanceService()

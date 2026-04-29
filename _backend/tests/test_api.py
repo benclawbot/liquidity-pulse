@@ -1,9 +1,9 @@
 import pytest
 from httpx import ASGITransport, AsyncClient
 
-from backend.main import app
-from backend.routers import flows, ideas, impacts, market, trends
-from backend.services.cache import defillama_cache, crypto_cache, yahoo_cache
+from _backend.main import app
+from _backend.routers import flows, ideas, impacts, market, trends
+from _backend.services.cache import defillama_cache, crypto_cache, yahoo_cache
 
 
 @pytest.fixture(autouse=True)

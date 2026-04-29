@@ -7,8 +7,8 @@ from typing import Any, Awaitable, Callable
 
 from fastapi import APIRouter
 
-from backend.services.yahoo_finance import YahooFinanceService
-from backend.utils.source_meta import aggregate_source_status, source_counts
+from _backend.services.yahoo_finance import YahooFinanceService
+from _backend.utils.source_meta import aggregate_source_status, source_counts
 
 router = APIRouter(prefix="/api/impacts", tags=["impacts"])
 yahoo = YahooFinanceService()

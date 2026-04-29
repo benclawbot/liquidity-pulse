@@ -1,7 +1,7 @@
 import pytest
 from types import SimpleNamespace
 
-from backend.services.yahoo_finance import MissingDataError, YahooFinanceService
+from _backend.services.yahoo_finance import MissingDataError, YahooFinanceService
 
 
 class FakeTicker:

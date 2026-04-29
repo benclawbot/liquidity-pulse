@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
-from backend.services.crypto import CryptoService
+from _backend.services.crypto import CryptoService
 
 
 @pytest.fixture

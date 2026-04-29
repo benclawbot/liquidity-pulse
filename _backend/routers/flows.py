@@ -6,10 +6,10 @@ from typing import Any
 
 from fastapi import APIRouter
 
-from backend.services.crypto_public import CryptoPublicService
-from backend.services.defillama import DEFAULT_CHAINS, DefiLlamaService
-from backend.services.signal_engine import SignalEngine
-from backend.utils.source_meta import aggregate_source_status, source_counts
+from _backend.services.crypto_public import CryptoPublicService
+from _backend.services.defillama import DEFAULT_CHAINS, DefiLlamaService
+from _backend.services.signal_engine import SignalEngine
+from _backend.utils.source_meta import aggregate_source_status, source_counts
 
 router = APIRouter(prefix="/api/flows", tags=["flows"])
 crypto = CryptoPublicService()

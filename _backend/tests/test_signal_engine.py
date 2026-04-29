@@ -1,4 +1,4 @@
-from backend.services.signal_engine import SignalEngine
+from _backend.services.signal_engine import SignalEngine
 
 
 engine = SignalEngine()
