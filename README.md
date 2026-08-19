@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="assets/liquidity-pulse-banner.svg" alt="Liquidity Pulse" width="100%" />
+</p>
+
 # Liquidity Pulse
 
 Liquidity Pulse is a real-time market intelligence dashboard for tracking cross-asset liquidity, capital flows, market impacts, hidden trends, and actionable trade ideas across equities, crypto, and macro.
